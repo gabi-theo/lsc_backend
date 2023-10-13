@@ -7,6 +7,7 @@ from recuperari.views import (
     SessionDescriptionList,
     TrainerScheduleView,
     UploadCourseExcelView,
+    UploadStudentsExcelView,
 )
 
 urlpatterns = [
@@ -41,4 +42,9 @@ urlpatterns = [
         UploadCourseExcelView.as_view(),
         name="course_excel_upload"
     ),
+    path(
+        "students_excel_upload/",
+        UploadStudentsExcelView.as_view(),
+        name="students_excel_upload"
+    )
 ]

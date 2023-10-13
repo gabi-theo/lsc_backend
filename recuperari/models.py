@@ -65,14 +65,33 @@ class Trainer(models.Model):
 
 class Student(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+        related_name="school_students",
+    )
     participant_name = models.CharField(max_length=50, null=False, blank=False)
     participant_parent_name = models.CharField(max_length=50, null=False, blank=False)
     parent_phone_number = models.CharField(max_length=20, null=False, blank=False)
     parent_email = models.CharField(max_length=50, null=False, blank=False)
-    submission_state = models.CharField(max_length=50, null=False, blank=False)
+
+    def __str__(self) -> str:
+        return self.participant_name
 
 
 class CourseSchedule(models.Model):
+    DAYS = (
+        ("luni", "Luni"),
+        ("marti", "Marti"),
+        ("miercuri", "Miercuri"),
+        ("joi", "Joi"),
+        ("vineri", "Vineri"),
+        ("sambata", "Sambata"),
+        ("duminica", "Duminica"),
+    )
+
     TYPE = (
         ("onl", "Online"),
         ("hbr", "Hibrid"),
@@ -85,11 +104,9 @@ class CourseSchedule(models.Model):
     total_sessions = models.SmallIntegerField()
     first_day_of_session = models.DateField(null=False, blank=False)
     last_day_of_session = models.DateField(null=False, blank=False)
-    day = models.ForeignKey(
-        CourseDays,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
+    day = models.CharField(
+        max_length=15,
+        choices=DAYS,
     )
     time = models.TimeField(null=False)
     trainer = models.ManyToManyField(Trainer)

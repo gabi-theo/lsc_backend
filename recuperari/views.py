@@ -18,8 +18,12 @@ from .serializers import (
 from .services.course import CourseService
 from .services.makeup import MakeUpService
 from .services.session import SessionService
+from .services.students import StudentService
 from .services.trainer import TrainerService
-from .utils import format_whised_make_up_times
+from .utils import (
+    format_whised_make_up_times,
+    check_excel_format_in_request_data,
+)
 
 
 class CoursesList(generics.ListAPIView):
@@ -133,18 +137,27 @@ class UploadCourseExcelView(APIView):
     parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request, *args, **kwargs):
-        if 'file' not in request.data:
-            return Response({'error': 'File not provided'}, status=status.HTTP_400_BAD_REQUEST)
-
-        excel_file = request.data['file']
-        if not excel_file.name.endswith('.xls') and not excel_file.name.endswith('.xlsx'):
-            return Response(
-                {'error': 'Invalid file format. Please provide an Excel file.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        check_excel_format_in_request_data(request)
         school = School.objects.get(id="2d3db5ad-b3da-46f8-9d4b-0e65fdbe2f30")
         try:
-            CourseService.create_course_and_course_schedule_from_excel_by_school(excel_file, school)
+            CourseService.create_course_and_course_schedule_from_excel_by_school(request.data['file'], school)
+            return Response({'message': 'Data imported successfully'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class UploadStudentsExcelView(APIView):
+    serializer_class = ImportSerializer
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request, *args, **kwargs):
+        check_excel_format_in_request_data(request)
+        school = School.objects.get(id="2d3db5ad-b3da-46f8-9d4b-0e65fdbe2f30")
+        try:
+            StudentService.create_student_from_excel_and_assign_it_to_school_course(
+                request.data['file'],
+                school,
+            )
             return Response({'message': 'Data imported successfully'}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
