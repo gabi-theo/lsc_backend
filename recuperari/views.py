@@ -5,10 +5,12 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.views import APIView
 from .models import (
     Course,
+    CourseSchedule,
     School,
 )
 from .serializers import (
     CourseSerializer,
+    CourseScheduleSerializer,
     ImportSerializer,
     MakeUpSerializer,
     SessionSerializer,
@@ -161,3 +163,11 @@ class UploadStudentsExcelView(APIView):
             return Response({'message': 'Data imported successfully'}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class CourseScheduleDetailView(mixins.ListModelMixin, generics.GenericAPIView):
+    serializer_class = CourseScheduleSerializer
+    
+    def get_queryset(self):
+        school_id = "2d3db5ad-b3da-46f8-9d4b-0e65fdbe2f30"
+        return CourseSchedule.objects.filter(course__school__id=school_id)

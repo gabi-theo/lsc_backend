@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import (
     Course,
+    CourseSchedule,
     CourseDescription,
     MakeUp,
     Session,
@@ -29,16 +30,23 @@ class CourseSerializer(serializers.ModelSerializer):
         return CourseDescriptionSerializer(course_descriptions, many=True).data
 
 
+class CourseScheduleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CourseSchedule
+        fields = ['students']
+
+
 class SessionDescriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = SessionsDescription
-        fields = ['course', 'min_session_no_description', 'max_session_no_description', 'description']
+        fields = ['course', 'min_session_no_description', 'max_session_no_description']
 
 
 class SessionSerializer(serializers.ModelSerializer):
+    course_session = CourseScheduleSerializer()
     class Meta:
         model = Session
-        fields = ['course_session', 'session_passed', 'date', 'session_no', 'absent_participants', 'made_up']
+        fields = ['course_session', 'session_passed', 'date', 'session_no', 'absent_participants', 'made_up', 'course_session']
 
 
 class TrainerScheduleSerializer(serializers.ModelSerializer):
@@ -55,3 +63,9 @@ class MakeUpSerializer(serializers.ModelSerializer):
 
 class ImportSerializer(serializers.Serializer):
     file = serializers.FileField()
+
+
+class CourseScheduleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CourseSchedule
+        fields = '__all__'

@@ -1,6 +1,7 @@
 from django.urls import path
 from recuperari.views import (
     CoursesList,
+    CourseScheduleDetailView,
     MakeUpRequestNewView,
     MakeUpSessionsAvailableView,
     SessionList,
@@ -46,5 +47,10 @@ urlpatterns = [
         "students_excel_upload/",
         UploadStudentsExcelView.as_view(),
         name="students_excel_upload"
+    ),
+    path(
+        "course_schedule_details/",
+        CourseScheduleDetailView.as_view(),
     )
 ]
+    
