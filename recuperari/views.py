@@ -27,6 +27,9 @@ from .utils import (
     check_excel_format_in_request_data,
 )
 
+from django.contrib.auth.models import User
+from django.contrib.auth import login, authenticate
+
 
 class CoursesList(generics.ListAPIView):
     queryset = Course.objects.all()
@@ -80,15 +83,17 @@ class MakeUpSessionsAvailableView(mixins.CreateModelMixin, generics.GenericAPIVi
         school = request.data.get("school_id")
 
         session = SessionService.get_session_by_id(session_id)
-        make_ups_for_session_in_current_school = MakeUpService.get_make_ups_for_school_by_session(school, session)
-        make_ups_for_session_in_other_schools = MakeUpService.get_make_ups_excluding_current_school_by_session(school, session)
+        make_ups_for_session_in_current_school = MakeUpService.get_make_ups_for_school_by_session(
+            school, session)
+        make_ups_for_session_in_other_schools = MakeUpService.get_make_ups_excluding_current_school_by_session(
+            school, session)
         all_make_ups = list(
             chain(
                 make_ups_for_session_in_current_school,
                 make_ups_for_session_in_other_schools,
             )
         )
-        if len(all_make_ups)>0:
+        if len(all_make_ups) > 0:
             serializer = MakeUpSerializer(all_make_ups, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -117,7 +122,8 @@ class TrainersScheduleAvailableView(generics.GenericAPIView):
             school_id,
         )
         if trainer_schedules.exists():
-            serializer = TrainerScheduleSerializer(trainer_schedules, many=True)
+            serializer = TrainerScheduleSerializer(
+                trainer_schedules, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response({'detail': 'MakeUps not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -142,7 +148,8 @@ class UploadCourseExcelView(APIView):
         check_excel_format_in_request_data(request)
         school = School.objects.get(id="2d3db5ad-b3da-46f8-9d4b-0e65fdbe2f30")
         try:
-            CourseService.create_course_and_course_schedule_from_excel_by_school(request.data['file'], school)
+            CourseService.create_course_and_course_schedule_from_excel_by_school(
+                request.data['file'], school)
             return Response({'message': 'Data imported successfully'}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -167,7 +174,32 @@ class UploadStudentsExcelView(APIView):
 
 class CourseScheduleDetailView(mixins.ListModelMixin, generics.GenericAPIView):
     serializer_class = CourseScheduleSerializer
-    
+
     def get_queryset(self):
         school_id = "2d3db5ad-b3da-46f8-9d4b-0e65fdbe2f30"
         return CourseSchedule.objects.filter(course__school__id=school_id)
+
+
+class UserLoginView(generics.GenericAPIView):
+    def get(self, request, *args, **kwargs):
+        return Response({"detail": "Endpoint for user login. For login requests, user should be passed as \"username\" and password as \"password\""})
+
+    def post(self, request, *args, **kwargs):
+        username = request.data["username"]
+        password = request.data["password"]
+
+        if not username or not password:
+            return Response({"detail": "Both the username and password are required."})
+
+        try:
+            user = User.objects.get(username=username)
+        except:
+            return Response(data={"error": "Incorrect username or password"}, status=status.HTTP_403_FORBIDDEN)
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            login(request, user)
+            return Response(data={"detail": "Login successful"}, status=status.HTTP_200_OK)
+        else:
+            return Response(data={"error": "Incorrect username or password"}, status=status.HTTP_403_FORBIDDEN)

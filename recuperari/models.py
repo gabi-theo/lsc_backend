@@ -3,6 +3,10 @@ from django.contrib.auth.models import User
 import uuid
 
 
+class BaseUser(User):
+    {}
+
+
 class School(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(
@@ -58,6 +62,8 @@ class Course(models.Model):
 
 class Trainer(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(
+        BaseUser, on_delete=models.CASCADE, null=True)
     name = models.CharField(max_length=50)
     phone_contact = models.CharField(max_length=15)
     email_contact = models.EmailField()
@@ -65,6 +71,8 @@ class Trainer(models.Model):
 
 class Student(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(
+        BaseUser, on_delete=models.CASCADE, null=True)
     school = models.ForeignKey(
         School,
         on_delete=models.CASCADE,
@@ -73,8 +81,10 @@ class Student(models.Model):
         related_name="school_students",
     )
     participant_name = models.CharField(max_length=50, null=False, blank=False)
-    participant_parent_name = models.CharField(max_length=50, null=False, blank=False)
-    parent_phone_number = models.CharField(max_length=20, null=False, blank=False)
+    participant_parent_name = models.CharField(
+        max_length=50, null=False, blank=False)
+    parent_phone_number = models.CharField(
+        max_length=20, null=False, blank=False)
     parent_email = models.CharField(max_length=50, null=False, blank=False)
 
     def __str__(self) -> str:
@@ -99,7 +109,8 @@ class CourseSchedule(models.Model):
     )
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='course_schedules')
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name='course_schedules')
     group_name = models.CharField(max_length=50, null=False, blank=False)
     total_sessions = models.SmallIntegerField()
     first_day_of_session = models.DateField(null=False, blank=False)
@@ -156,7 +167,6 @@ class Session(models.Model):
 #     made_up = models.BooleanField(default=False)
 
 
-
 class MakeUp(models.Model):
     MAKE_UP_SESSION_TYPE = (
         ("onl", "Online cu alta grupa"),
@@ -171,14 +181,16 @@ class MakeUp(models.Model):
     make_up_on = models.DateTimeField()
     type = models.CharField(max_length=50, choices=MAKE_UP_SESSION_TYPE)
     duration_in_minutes = models.SmallIntegerField(default=30)
-    make_up_trainer = models.ForeignKey(Trainer, on_delete=models.SET_NULL, null=True, blank=True)
+    make_up_trainer = models.ForeignKey(
+        Trainer, on_delete=models.SET_NULL, null=True, blank=True)
     make_up_approved = models.BooleanField(default=False)
     make_up_completed = models.BooleanField(default=False)
 
 
 class CourseDescription(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="course_description")
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name="course_description")
     short_description = models.TextField(max_length=100)
     long_description = models.TextField(max_length=1000)
     created_at = models.DateTimeField(auto_now_add=True, editable=False)
@@ -187,7 +199,8 @@ class CourseDescription(models.Model):
 
 class SessionsDescription(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="session_descriptions")
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name="session_descriptions")
     min_session_no_description = models.IntegerField(null=False, blank=False)
     max_session_no_description = models.IntegerField(null=False, blank=False)
     description = models.TextField(max_length=1000)
