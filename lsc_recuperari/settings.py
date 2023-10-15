@@ -58,6 +58,9 @@ REST_FRAMEWORK = {
         "recuperari.authentication.CookieJWTAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
 }
 
 AUTH_USER_MODEL = 'recuperari.User'

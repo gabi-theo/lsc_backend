@@ -23,19 +23,17 @@ from .services.makeup import MakeUpService
 from .services.session import SessionService
 from .services.students import StudentService
 from .services.trainer import TrainerService
-from .services.school import SchoolService
 from .utils import (
     format_whised_make_up_times,
     check_excel_format_in_request_data,
 )
 
-from .models import User
-from django.contrib.auth import login, authenticate
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from .authentication import CookieJWTAuthentication
 from .serializers import SignInSerializer
 from rest_framework.request import Request
 from .services.users import UserService
+from .permissions import IsCoordinator
 
 
 class CoursesList(generics.ListAPIView):
@@ -204,22 +202,15 @@ class SignInView(generics.GenericAPIView):
         return response
 
 
-class SchoolSetupView(generics.GenericAPIView):
+class SchoolSetupView(mixins.CreateModelMixin,
+                      generics.GenericAPIView,
+                      ):
 
     serializer_class = SchoolSetupSerializer
+    permission_classes = [IsAuthenticated, IsCoordinator]
 
-    def post(self, request: Request):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
-        school = SchoolService.create_school_with_user_by_username(
-            serializer.validated_data["owner_name"],
-            serializer.validated_data["name"],
-            serializer.validated_data["phone_contact"],
-            serializer.validated_data["email_contact"],
-            serializer.validated_data["room_count"],
-        )
-        if school is None:
-            return Response({"error": "Failed to create school: owner name not found in the database."}, status=status.HTTP_501_NOT_IMPLEMENTED)
-        else:
-            return Response(self.get_serializer(school).data)
+    def post(self, request: Request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)

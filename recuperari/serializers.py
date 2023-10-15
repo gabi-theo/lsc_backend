@@ -120,7 +120,7 @@ class SignInSerializer(serializers.ModelSerializer):
 
 class SchoolSetupSerializer(serializers.ModelSerializer):
 
-    owner_name = serializers.CharField(write_only=True)
+    owner_name = serializers.CharField(read_only=True)
 
     class Meta:
         model = School
