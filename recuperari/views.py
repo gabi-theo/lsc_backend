@@ -16,12 +16,14 @@ from .serializers import (
     SessionSerializer,
     SessionDescriptionSerializer,
     TrainerScheduleSerializer,
+    SchoolSetupSerializer,
 )
 from .services.course import CourseService
 from .services.makeup import MakeUpService
 from .services.session import SessionService
 from .services.students import StudentService
 from .services.trainer import TrainerService
+from .services.school import SchoolService
 from .utils import (
     format_whised_make_up_times,
     check_excel_format_in_request_data,
@@ -200,3 +202,24 @@ class SignInView(generics.GenericAPIView):
         response = Response(self.get_serializer(user).data)
         CookieJWTAuthentication.login(user, response)
         return response
+
+
+class SchoolSetupView(generics.GenericAPIView):
+
+    serializer_class = SchoolSetupSerializer
+
+    def post(self, request: Request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        school = SchoolService.create_school_with_user_by_username(
+            serializer.validated_data["owner_name"],
+            serializer.validated_data["name"],
+            serializer.validated_data["phone_contact"],
+            serializer.validated_data["email_contact"],
+            serializer.validated_data["room_count"],
+        )
+        if school is None:
+            return Response({"error": "Failed to create school: owner name not found in the database."}, status=status.HTTP_501_NOT_IMPLEMENTED)
+        else:
+            return Response(self.get_serializer(school).data)

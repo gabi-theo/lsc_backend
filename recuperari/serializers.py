@@ -7,6 +7,7 @@ from .models import (
     Session,
     SessionsDescription,
     TrainerSchedule,
+    School,
 )
 from .models import User
 from django.contrib.auth import authenticate
@@ -115,3 +116,18 @@ class SignInSerializer(serializers.ModelSerializer):
                 "This user has been deactivated.")
 
         return data
+
+
+class SchoolSetupSerializer(serializers.ModelSerializer):
+
+    owner_name = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = School
+        fields = [
+            "name",
+            "phone_contact",
+            "email_contact",
+            "room_count",
+            "owner_name",
+        ]

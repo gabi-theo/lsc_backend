@@ -83,7 +83,7 @@ class User(AbstractBaseUser):
 
     def _str_(self):
         return self.get_username()
-    
+
     def has_perm(self, perm, obj=None):
         return self.is_superuser
 
@@ -105,6 +105,10 @@ class School(models.Model):
     )
     phone_contact = models.CharField(max_length=15)
     email_contact = models.EmailField()
+    room_count = models.PositiveSmallIntegerField(
+        null=False,
+        blank=False
+    )
 
     def __str__(self) -> str:
         return self.name
