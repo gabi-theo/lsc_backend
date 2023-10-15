@@ -27,7 +27,7 @@ from .utils import (
     check_excel_format_in_request_data,
 )
 
-from django.contrib.auth.models import User
+from .models import User
 from django.contrib.auth import login, authenticate
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from .authentication import CookieJWTAuthentication
@@ -185,31 +185,6 @@ class CourseScheduleDetailView(mixins.ListModelMixin, generics.GenericAPIView):
         return CourseSchedule.objects.filter(course__school__id=school_id)
 
 
-class UserLoginView(generics.GenericAPIView):
-    def get(self, request, *args, **kwargs):
-        return Response({"detail": "Endpoint for user login. For login requests, user should be passed as \"username\" and password as \"password\""})
-
-    def post(self, request, *args, **kwargs):
-        username = request.data["username"]
-        password = request.data["password"]
-
-        if not username or not password:
-            return Response({"detail": "Both the username and password are required."})
-
-        try:
-            user = User.objects.get(username=username)
-        except:
-            return Response(data={"error": "Incorrect username or password"}, status=status.HTTP_403_FORBIDDEN)
-
-        user = authenticate(request, username=username, password=password)
-
-        if user is not None:
-            login(request, user)
-            return Response(data={"detail": "Login successful"}, status=status.HTTP_200_OK)
-        else:
-            return Response(data={"error": "Incorrect username or password"}, status=status.HTTP_403_FORBIDDEN)
-
-
 class SignInView(generics.GenericAPIView):
     authentication_classes = []
     permission_classes = [AllowAny]
@@ -219,10 +194,9 @@ class SignInView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user = UserService.get_user_by_email(
-            serializer.validated_data["email"])
+        user = UserService.get_user_by_username(
+            serializer.validated_data["username"])
         user.save()
         response = Response(self.get_serializer(user).data)
         CookieJWTAuthentication.login(user, response)
-
         return response

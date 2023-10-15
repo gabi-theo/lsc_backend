@@ -9,7 +9,7 @@ from recuperari.views import (
     TrainerScheduleView,
     UploadCourseExcelView,
     UploadStudentsExcelView,
-    UserLoginView,
+    SignInView,
 )
 
 urlpatterns = [
@@ -55,7 +55,7 @@ urlpatterns = [
     ),
     path(
         "login/",
-        UserLoginView.as_view(),
+        SignInView.as_view(),
         name="login",
     ),
 ]

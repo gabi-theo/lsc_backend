@@ -7,27 +7,26 @@ from django.utils.translation import gettext_lazy as _
 
 class UserManager(BaseUserManager):
     """
-    User model manager where email is the unique identifiers
+    User model manager where username is the unique identifiers
     for authentication instead of usernames.
     """
 
-    def create_user(self, email, password, **extra_fields):
+    def create_user(self, username, password, **extra_fields):
         """
-        Create and save a User with the given email and password.
+        Create and save a User with the given username and password.
         """
-        if not email:
-            raise ValueError(_("The Email must be set"))
+        if not username:
+            raise ValueError(_("The username must be set"))
 
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
+        user = self.model(username=username, **extra_fields)
         user.set_password(password)
         user.save()
 
         return user
 
-    def create_superuser(self, email, password, **extra_fields):
+    def create_superuser(self, username, password, **extra_fields):
         """
-        Create and save a SuperUser with the given email and password.
+        Create and save a SuperUser with the given username and password.
         """
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
@@ -38,12 +37,18 @@ class UserManager(BaseUserManager):
         if extra_fields.get("is_superuser") is not True:
             raise ValueError(_("Superuser must have is_superuser=True."))
 
-        return self.create_user(email, password, **extra_fields)
+        return self.create_user(username, password, **extra_fields)
 
 
 class User(AbstractBaseUser):
+    ROLE_CHOICES = (
+        ("trainer", "Trainer"),
+        ("student", "Student"),
+        ("coordinator", "Coordinator"),
+    )
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
-    email = models.EmailField(_("email address"), unique=True)
+    username = models.CharField(max_length=50, unique=True)
     is_superuser = models.BooleanField(
         _("superuser status"),
         default=False,
@@ -66,25 +71,24 @@ class User(AbstractBaseUser):
             "Unselect this instead of deleting accounts."
         ),
     )
-    is_reset_password_email_token_expired = models.BooleanField(default=True)
     is_reset_password_token_expired = models.BooleanField(default=True)
 
-    USERNAME_FIELD = "email"
+    USERNAME_FIELD = "username"
     REQUIRED_FIELDS = []
 
     objects = UserManager()
-
-    ROLE_CHOICES = (
-        ("trainer", "Trainer"),
-        ("student", "Student"),
-        ("coordinator", "Coordinator"),
-    )
 
     role = models.CharField(max_length=20,
                             choices=ROLE_CHOICES, blank=True, null=True)
 
     def _str_(self):
-        return self.email
+        return self.get_username()
+    
+    def has_perm(self, perm, obj=None):
+        return self.is_superuser
+
+    def has_module_perms(self, app_label):
+        return self.is_superuser
 
 
 class School(models.Model):

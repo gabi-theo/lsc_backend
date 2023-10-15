@@ -8,7 +8,7 @@ from .models import (
     SessionsDescription,
     TrainerSchedule,
 )
-from django.contrib.auth.models import User
+from .models import User
 from django.contrib.auth import authenticate
 
 
@@ -79,7 +79,7 @@ class CourseScheduleSerializer(serializers.ModelSerializer):
 
 class SignInSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    email = serializers.EmailField(write_only=True)
+    username = serializers.CharField(write_only=True)
     token = serializers.HiddenField(default=None)
 
     class Meta:
@@ -87,23 +87,23 @@ class SignInSerializer(serializers.ModelSerializer):
         fields = [
             "password",
             "token",
-            "remember_me",
+            "username",
         ]
 
     def validate(self, attrs: dict) -> dict:
         data = super().validate(attrs)
-        email = attrs.get("email", None)
+        username = attrs.get("username", None)
         password = attrs.get("password", None)
 
-        if email is None:
+        if username is None:
             raise serializers.ValidationError(
-                "A email is required to sign-in.")
+                "A username is required to sign-in.")
 
         if password is None:
             raise serializers.ValidationError(
                 "A password is required to sign-in.")
 
-        user = authenticate(username=email, password=password)
+        user = authenticate(username=username, password=password)
 
         if user is None:
             raise serializers.ValidationError(

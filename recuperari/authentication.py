@@ -27,12 +27,8 @@ class CookieJWTAuthentication(JWTAuthentication):
 
     @staticmethod
     def login(user: User, response: Response) -> None:
-        if user.remember_me:
-            token = LongLiveSlidingToken.for_user(user)
-            cookie_expire_time = settings.LONG_LIVE_SLIDING_TOKEN_LIFETIME_SEC
-        else:
-            token = SlidingToken.for_user(user)
-            cookie_expire_time = settings.SESSION_COOKIE_AGE
+        token = SlidingToken.for_user(user)
+        cookie_expire_time = settings.SESSION_COOKIE_AGE
 
         set_value_to_cookie(
             response, settings.AUTH_COOKIE_KEY, token, cookie_expire_time
