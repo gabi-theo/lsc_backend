@@ -1,10 +1,90 @@
 from django.db import models
-from django.contrib.auth.models import User
 import uuid
+from django.contrib.auth.base_user import BaseUserManager
+from django.contrib.auth.models import AbstractBaseUser
+from django.utils.translation import gettext_lazy as _
 
 
-class BaseUser(User):
-    {}
+class UserManager(BaseUserManager):
+    """
+    User model manager where email is the unique identifiers
+    for authentication instead of usernames.
+    """
+
+    def create_user(self, email, password, **extra_fields):
+        """
+        Create and save a User with the given email and password.
+        """
+        if not email:
+            raise ValueError(_("The Email must be set"))
+
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save()
+
+        return user
+
+    def create_superuser(self, email, password, **extra_fields):
+        """
+        Create and save a SuperUser with the given email and password.
+        """
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("is_active", True)
+
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError(_("Superuser must have is_staff=True."))
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError(_("Superuser must have is_superuser=True."))
+
+        return self.create_user(email, password, **extra_fields)
+
+
+class User(AbstractBaseUser):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    email = models.EmailField(_("email address"), unique=True)
+    is_superuser = models.BooleanField(
+        _("superuser status"),
+        default=False,
+        help_text=_(
+            "Designates that this user has all permissions without "
+            "explicitly assigning them."
+        ),
+    )
+    is_staff = models.BooleanField(
+        _("staff status"),
+        default=False,
+        help_text=_(
+            "Designates whether the user can log into this admin site."),
+    )
+    is_active = models.BooleanField(
+        _("active"),
+        default=True,
+        help_text=_(
+            "Designates whether this user should be treated as active. "
+            "Unselect this instead of deleting accounts."
+        ),
+    )
+    is_reset_password_email_token_expired = models.BooleanField(default=True)
+    is_reset_password_token_expired = models.BooleanField(default=True)
+
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = []
+
+    objects = UserManager()
+
+    ROLE_CHOICES = (
+        ("trainer", "Trainer"),
+        ("student", "Student"),
+        ("coordinator", "Coordinator"),
+    )
+
+    role = models.CharField(max_length=20,
+                            choices=ROLE_CHOICES, blank=True, null=True)
+
+    def _str_(self):
+        return self.email
 
 
 class School(models.Model):
@@ -63,7 +143,7 @@ class Course(models.Model):
 class Trainer(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(
-        BaseUser, on_delete=models.CASCADE, null=True)
+        User, on_delete=models.CASCADE, null=True)
     name = models.CharField(max_length=50)
     phone_contact = models.CharField(max_length=15)
     email_contact = models.EmailField()
@@ -72,7 +152,7 @@ class Trainer(models.Model):
 class Student(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(
-        BaseUser, on_delete=models.CASCADE, null=True)
+        User, on_delete=models.CASCADE, null=True)
     school = models.ForeignKey(
         School,
         on_delete=models.CASCADE,

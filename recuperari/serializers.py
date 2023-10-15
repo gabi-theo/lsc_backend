@@ -8,6 +8,8 @@ from .models import (
     SessionsDescription,
     TrainerSchedule,
 )
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
 
 
 class CourseDescriptionSerializer(serializers.ModelSerializer):
@@ -18,7 +20,8 @@ class CourseDescriptionSerializer(serializers.ModelSerializer):
 
 class CourseSerializer(serializers.ModelSerializer):
     course_description = serializers.SerializerMethodField(read_only=True,)
-    next_possible_course = serializers.StringRelatedField(many=True, read_only=True)
+    next_possible_course = serializers.StringRelatedField(
+        many=True, read_only=True)
 
     class Meta:
         model = Course
@@ -39,14 +42,17 @@ class CourseScheduleSerializer(serializers.ModelSerializer):
 class SessionDescriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = SessionsDescription
-        fields = ['course', 'min_session_no_description', 'max_session_no_description']
+        fields = ['course', 'min_session_no_description',
+                  'max_session_no_description']
 
 
 class SessionSerializer(serializers.ModelSerializer):
     course_session = CourseScheduleSerializer()
+
     class Meta:
         model = Session
-        fields = ['course_session', 'session_passed', 'date', 'session_no', 'absent_participants', 'made_up', 'course_session']
+        fields = ['course_session', 'session_passed', 'date',
+                  'session_no', 'absent_participants', 'made_up', 'course_session']
 
 
 class TrainerScheduleSerializer(serializers.ModelSerializer):
@@ -69,3 +75,43 @@ class CourseScheduleSerializer(serializers.ModelSerializer):
     class Meta:
         model = CourseSchedule
         fields = '__all__'
+
+
+class SignInSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+    email = serializers.EmailField(write_only=True)
+    token = serializers.HiddenField(default=None)
+
+    class Meta:
+        model = User
+        fields = [
+            "password",
+            "token",
+            "remember_me",
+        ]
+
+    def validate(self, attrs: dict) -> dict:
+        data = super().validate(attrs)
+        email = attrs.get("email", None)
+        password = attrs.get("password", None)
+
+        if email is None:
+            raise serializers.ValidationError(
+                "A email is required to sign-in.")
+
+        if password is None:
+            raise serializers.ValidationError(
+                "A password is required to sign-in.")
+
+        user = authenticate(username=email, password=password)
+
+        if user is None:
+            raise serializers.ValidationError(
+                "This combination of username and password is invalid."
+            )
+
+        if not user.is_active:
+            raise serializers.ValidationError(
+                "This user has been deactivated.")
+
+        return data

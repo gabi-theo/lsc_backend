@@ -29,6 +29,11 @@ from .utils import (
 
 from django.contrib.auth.models import User
 from django.contrib.auth import login, authenticate
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from .authentication import CookieJWTAuthentication
+from .serializers import SignInSerializer
+from rest_framework.request import Request
+from .services.users import UserService
 
 
 class CoursesList(generics.ListAPIView):
@@ -203,3 +208,21 @@ class UserLoginView(generics.GenericAPIView):
             return Response(data={"detail": "Login successful"}, status=status.HTTP_200_OK)
         else:
             return Response(data={"error": "Incorrect username or password"}, status=status.HTTP_403_FORBIDDEN)
+
+
+class SignInView(generics.GenericAPIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    serializer_class = SignInSerializer
+
+    def post(self, request: Request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = UserService.get_user_by_email(
+            serializer.validated_data["email"])
+        user.save()
+        response = Response(self.get_serializer(user).data)
+        CookieJWTAuthentication.login(user, response)
+
+        return response
