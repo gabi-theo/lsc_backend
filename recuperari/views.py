@@ -37,8 +37,11 @@ from .permissions import IsCoordinator
 
 
 class CoursesList(generics.ListAPIView):
-    queryset = Course.objects.all()
     serializer_class = CourseSerializer
+
+    def get_queryset(self):
+        school = self.request.user.course_school.first()
+        return school.school_courses.all()
 
 
 class SessionList(generics.ListAPIView):
@@ -151,7 +154,7 @@ class UploadCourseExcelView(APIView):
 
     def post(self, request, *args, **kwargs):
         check_excel_format_in_request_data(request)
-        school = School.objects.get(id="2d3db5ad-b3da-46f8-9d4b-0e65fdbe2f30")
+        school = request.user.course_school.first()
         try:
             CourseService.create_course_and_course_schedule_from_excel_by_school(
                 request.data['file'], school)
@@ -166,7 +169,7 @@ class UploadStudentsExcelView(APIView):
 
     def post(self, request, *args, **kwargs):
         check_excel_format_in_request_data(request)
-        school = School.objects.get(id="2d3db5ad-b3da-46f8-9d4b-0e65fdbe2f30")
+        school = request.user.course_school.first()
         try:
             StudentService.create_student_from_excel_and_assign_it_to_school_course(
                 request.data['file'],
