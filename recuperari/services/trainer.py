@@ -1,5 +1,6 @@
-from recuperari.models import TrainerSchedule
 from django.db.models import Q
+
+from recuperari.models import Trainer, TrainerSchedule
 
 
 class TrainerService:
@@ -20,3 +21,7 @@ class TrainerService:
             Q(available_for_make_up=True) &
             Q(school=school)
         )
+
+    @staticmethod
+    def get_trainer_by_id(trainer_id):
+        return Trainer.objects.filter(id=trainer_id)

@@ -1,17 +1,12 @@
 from django.urls import path
-from recuperari.views import (
-    CoursesList,
-    CourseScheduleDetailView,
-    MakeUpRequestNewView,
-    MakeUpSessionsAvailableView,
-    SessionList,
-    SessionDescriptionList,
-    TrainerScheduleView,
-    UploadCourseExcelView,
-    UploadStudentsExcelView,
-    SignInView,
-    SchoolSetupView,
-)
+
+from recuperari.views import (CourseScheduleDetailView, CoursesList,
+                              MakeUpRequestNewView,
+                              MakeUpSessionsAvailableView, SchoolSetupView,
+                              SessionDescriptionList, SessionList, SignInView,
+                              StudentProfileView, TrainerProfileView,
+                              TrainerScheduleView, UploadCourseExcelView,
+                              UploadStudentsExcelView)
 
 urlpatterns = [
     path('courses/', CoursesList.as_view(), name='courses-list'),
@@ -63,5 +58,15 @@ urlpatterns = [
         "school-setup/",
         SchoolSetupView.as_view(),
         name="school-setup"
-    )
+    ),
+    path(
+        "trainer-profile/<uuid:pk>",
+        TrainerProfileView.as_view(),
+        name="trainer-profile"
+    ),
+    path(
+        "student-profile/<uuid:pk>",
+        StudentProfileView.as_view(),
+        name="student-profile"
+    ),
 ]

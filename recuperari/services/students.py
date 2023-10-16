@@ -1,6 +1,9 @@
 import pandas as pd
+
 from recuperari.models import Student
+
 from .course import CourseService
+
 
 class StudentService:
     @staticmethod
@@ -25,3 +28,7 @@ class StudentService:
                 day=row['schedule_times'].split(" ")[0],
                 time=row['schedule_times'].split(" ")[1],
             )
+
+    @staticmethod
+    def get_student_by_id(student_id):
+        return Student.objects.filter(id=student_id)

@@ -1,8 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+
+from django.conf import settings
 from rest_framework import status
 from rest_framework.response import Response
-from django.conf import settings
-from datetime import timedelta
 from rest_framework_simplejwt.tokens import SlidingToken
 
 

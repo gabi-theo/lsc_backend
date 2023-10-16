@@ -1,7 +1,8 @@
-from django.db import models
 import uuid
+
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser
+from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 
@@ -156,6 +157,9 @@ class Trainer(models.Model):
     phone_contact = models.CharField(max_length=15)
     email_contact = models.EmailField()
 
+    # def __str__(self) -> str:
+    #     return self.id
+
 
 class Student(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -175,8 +179,8 @@ class Student(models.Model):
         max_length=20, null=False, blank=False)
     parent_email = models.CharField(max_length=50, null=False, blank=False)
 
-    def __str__(self) -> str:
-        return self.participant_name
+    # def __str__(self) -> str:
+    #     return self.participant_name
 
 
 class CourseSchedule(models.Model):

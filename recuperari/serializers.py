@@ -1,16 +1,9 @@
-from rest_framework import serializers
-from .models import (
-    Course,
-    CourseSchedule,
-    CourseDescription,
-    MakeUp,
-    Session,
-    SessionsDescription,
-    TrainerSchedule,
-    School,
-)
-from .models import User
 from django.contrib.auth import authenticate
+from rest_framework import serializers
+
+from .models import (Course, CourseDescription, CourseSchedule, MakeUp, School,
+                     Session, SessionsDescription, Student, Trainer,
+                     TrainerSchedule, User)
 
 
 class CourseDescriptionSerializer(serializers.ModelSerializer):
@@ -130,4 +123,34 @@ class SchoolSetupSerializer(serializers.ModelSerializer):
             "email_contact",
             "room_count",
             "owner_name",
+        ]
+
+
+class StudentCreateUpdateSerializer(serializers.ModelSerializer):
+
+    id = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = Student
+        fields = [
+            "id",
+            "school",
+            "participant_name",
+            "participant_parent_name",
+            "parent_phone_number",
+            "parent_email",
+        ]
+
+
+class TrainerCreateUpdateSerializer(serializers.ModelSerializer):
+
+    id = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = Trainer
+        fields = [
+            "id",
+            "name",
+            "phone_contact",
+            "email_contact",
         ]

@@ -1,8 +1,6 @@
 from django.db.models import Q
 
-from recuperari.models import (
-    MakeUp,
-)
+from recuperari.models import MakeUp
 
 
 class MakeUpService:

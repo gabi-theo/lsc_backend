@@ -1,4 +1,5 @@
 import pandas as pd
+
 from recuperari.models import Course, CourseSchedule
 from recuperari.utils import map_to_bool
 
@@ -9,14 +10,15 @@ class CourseService:
         group_name,
         day,
         time,
-    ):  
+    ):
         try:
             CourseSchedule.objects.get(
                 group_name=group_name,
                 day=day,
                 time=time)
         except Exception as e:
-            print(f"Error for group_name{group_name} on day {day} and time {time}")
+            print(
+                f"Error for group_name{group_name} on day {day} and time {time}")
             pass
         return CourseSchedule.objects.filter(
             group_name=group_name,
@@ -33,7 +35,8 @@ class CourseService:
         df = pd.read_excel(excel_file, skiprows=[0])
         # Loop through the rows and create CourseSchedule objects
         for _, row in df.iterrows():
-            course, _ = Course.objects.get_or_create(school=school, course_type=row['courseType_name'])
+            course, _ = Course.objects.get_or_create(
+                school=school, course_type=row['courseType_name'])
             CourseSchedule.objects.create(
                 course=course,
                 group_name=row['name'],

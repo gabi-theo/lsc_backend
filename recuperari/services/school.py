@@ -1,7 +1,9 @@
-from recuperari.models import School, User
-from typing import Optional
-from .users import UserService
 import uuid
+from typing import Optional
+
+from recuperari.models import School, User
+
+from .users import UserService
 
 
 class SchoolService:

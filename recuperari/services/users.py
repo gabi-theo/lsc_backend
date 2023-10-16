@@ -1,5 +1,6 @@
-from recuperari.models import User
 from typing import Optional
+
+from recuperari.models import User
 
 
 class UserService:

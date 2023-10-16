@@ -1,18 +1,8 @@
 from django.contrib import admin
-from .models import (
-    Course,
-    CourseDays,
-    CourseDescription,
-    CourseSchedule,
-    MakeUp,
-    School,
-    Session,
-    SessionsDescription,
-    Student,
-    Trainer,
-    TrainerSchedule,
-    User,
-)
+
+from .models import (Course, CourseDays, CourseDescription, CourseSchedule,
+                     MakeUp, School, Session, SessionsDescription, Student,
+                     Trainer, TrainerSchedule, User)
 
 # Register your models here.
 admin.site.register(School)
