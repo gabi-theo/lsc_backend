@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .authentication import CookieJWTAuthentication
-from .models import Course, CourseSchedule, School, Student, Trainer
+from .models import Course, CourseSchedule, School, Student, Trainer, User
 from .permissions import IsCoordinator, IsStudent, IsTrainer
 from .serializers import (CourseScheduleSerializer, CourseSerializer,
                           ImportSerializer, MakeUpSerializer,
@@ -221,8 +221,9 @@ class StudentProfileView(generics.RetrieveUpdateDestroyAPIView, generics.Generic
         return StudentService.get_student_by_id(self.kwargs["pk"])
 
     def delete(self, request, *args, **kwargs):
-        student = get_object_or_404(self, pk=self.kwargs["pk"])
-        student.delete()
+        student = get_object_or_404(Student, pk=self.kwargs["pk"])
+        user = student.user
+        user.delete()
         return Response("Student deleted", status=status.HTTP_204_NO_CONTENT)
 
 
@@ -237,5 +238,6 @@ class TrainerProfileView(generics.RetrieveUpdateDestroyAPIView, generics.Generic
     def delete(self, request, *args, **kwargs):
         print(self.kwargs)
         trainer = get_object_or_404(Trainer, pk=self.kwargs["pk"])
-        trainer.delete()
+        user = trainer.user
+        user.delete()
         return Response("Trainer deleted", status=status.HTTP_204_NO_CONTENT)
