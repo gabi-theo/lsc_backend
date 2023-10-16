@@ -1,6 +1,94 @@
 from django.db import models
-from django.contrib.auth.models import User
 import uuid
+from django.contrib.auth.base_user import BaseUserManager
+from django.contrib.auth.models import AbstractBaseUser
+from django.utils.translation import gettext_lazy as _
+
+
+class UserManager(BaseUserManager):
+    """
+    User model manager where username is the unique identifiers
+    for authentication instead of usernames.
+    """
+
+    def create_user(self, username, password, **extra_fields):
+        """
+        Create and save a User with the given username and password.
+        """
+        if not username:
+            raise ValueError(_("The username must be set"))
+
+        user = self.model(username=username, **extra_fields)
+        user.set_password(password)
+        user.save()
+
+        return user
+
+    def create_superuser(self, username, password, **extra_fields):
+        """
+        Create and save a SuperUser with the given username and password.
+        """
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("is_active", True)
+
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError(_("Superuser must have is_staff=True."))
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError(_("Superuser must have is_superuser=True."))
+
+        return self.create_user(username, password, **extra_fields)
+
+
+class User(AbstractBaseUser):
+    ROLE_CHOICES = (
+        ("trainer", "Trainer"),
+        ("student", "Student"),
+        ("coordinator", "Coordinator"),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    username = models.CharField(max_length=50, unique=True)
+    is_superuser = models.BooleanField(
+        _("superuser status"),
+        default=False,
+        help_text=_(
+            "Designates that this user has all permissions without "
+            "explicitly assigning them."
+        ),
+    )
+    is_staff = models.BooleanField(
+        _("staff status"),
+        default=False,
+        help_text=_(
+            "Designates whether the user can log into this admin site."),
+    )
+    is_active = models.BooleanField(
+        _("active"),
+        default=True,
+        help_text=_(
+            "Designates whether this user should be treated as active. "
+            "Unselect this instead of deleting accounts."
+        ),
+    )
+    is_reset_password_token_expired = models.BooleanField(default=True)
+
+    USERNAME_FIELD = "username"
+    REQUIRED_FIELDS = []
+
+    objects = UserManager()
+
+    role = models.CharField(max_length=20,
+                            choices=ROLE_CHOICES, blank=True, null=True)
+
+    def _str_(self):
+        return self.get_username()
+
+    def has_perm(self, perm, obj=None):
+        return self.is_superuser
+
+    def has_module_perms(self, app_label):
+        return self.is_superuser
 
 
 class School(models.Model):
@@ -17,6 +105,10 @@ class School(models.Model):
     )
     phone_contact = models.CharField(max_length=15)
     email_contact = models.EmailField()
+    room_count = models.PositiveSmallIntegerField(
+        null=False,
+        blank=False
+    )
 
     def __str__(self) -> str:
         return self.name
@@ -58,6 +150,8 @@ class Course(models.Model):
 
 class Trainer(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, null=True)
     name = models.CharField(max_length=50)
     phone_contact = models.CharField(max_length=15)
     email_contact = models.EmailField()
@@ -65,6 +159,8 @@ class Trainer(models.Model):
 
 class Student(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, null=True)
     school = models.ForeignKey(
         School,
         on_delete=models.CASCADE,
@@ -73,8 +169,10 @@ class Student(models.Model):
         related_name="school_students",
     )
     participant_name = models.CharField(max_length=50, null=False, blank=False)
-    participant_parent_name = models.CharField(max_length=50, null=False, blank=False)
-    parent_phone_number = models.CharField(max_length=20, null=False, blank=False)
+    participant_parent_name = models.CharField(
+        max_length=50, null=False, blank=False)
+    parent_phone_number = models.CharField(
+        max_length=20, null=False, blank=False)
     parent_email = models.CharField(max_length=50, null=False, blank=False)
 
     def __str__(self) -> str:
@@ -99,7 +197,8 @@ class CourseSchedule(models.Model):
     )
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='course_schedules')
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name='course_schedules')
     group_name = models.CharField(max_length=50, null=False, blank=False)
     total_sessions = models.SmallIntegerField()
     first_day_of_session = models.DateField(null=False, blank=False)
@@ -156,7 +255,6 @@ class Session(models.Model):
 #     made_up = models.BooleanField(default=False)
 
 
-
 class MakeUp(models.Model):
     MAKE_UP_SESSION_TYPE = (
         ("onl", "Online cu alta grupa"),
@@ -171,14 +269,16 @@ class MakeUp(models.Model):
     make_up_on = models.DateTimeField()
     type = models.CharField(max_length=50, choices=MAKE_UP_SESSION_TYPE)
     duration_in_minutes = models.SmallIntegerField(default=30)
-    make_up_trainer = models.ForeignKey(Trainer, on_delete=models.SET_NULL, null=True, blank=True)
+    make_up_trainer = models.ForeignKey(
+        Trainer, on_delete=models.SET_NULL, null=True, blank=True)
     make_up_approved = models.BooleanField(default=False)
     make_up_completed = models.BooleanField(default=False)
 
 
 class CourseDescription(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="course_description")
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name="course_description")
     short_description = models.TextField(max_length=100)
     long_description = models.TextField(max_length=1000)
     created_at = models.DateTimeField(auto_now_add=True, editable=False)
@@ -187,7 +287,8 @@ class CourseDescription(models.Model):
 
 class SessionsDescription(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="session_descriptions")
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name="session_descriptions")
     min_session_no_description = models.IntegerField(null=False, blank=False)
     max_session_no_description = models.IntegerField(null=False, blank=False)
     description = models.TextField(max_length=1000)

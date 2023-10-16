@@ -11,6 +11,7 @@ from .models import (
     Student,
     Trainer,
     TrainerSchedule,
+    User,
 )
 
 # Register your models here.
@@ -25,3 +26,4 @@ admin.site.register(Session)
 admin.site.register(SessionsDescription)
 admin.site.register(CourseDays)
 admin.site.register(MakeUp)
+admin.site.register(User)

@@ -16,6 +16,7 @@ from .serializers import (
     SessionSerializer,
     SessionDescriptionSerializer,
     TrainerScheduleSerializer,
+    SchoolSetupSerializer,
 )
 from .services.course import CourseService
 from .services.makeup import MakeUpService
@@ -26,6 +27,13 @@ from .utils import (
     format_whised_make_up_times,
     check_excel_format_in_request_data,
 )
+
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from .authentication import CookieJWTAuthentication
+from .serializers import SignInSerializer
+from rest_framework.request import Request
+from .services.users import UserService
+from .permissions import IsCoordinator
 
 
 class CoursesList(generics.ListAPIView):
@@ -80,15 +88,17 @@ class MakeUpSessionsAvailableView(mixins.CreateModelMixin, generics.GenericAPIVi
         school = request.data.get("school_id")
 
         session = SessionService.get_session_by_id(session_id)
-        make_ups_for_session_in_current_school = MakeUpService.get_make_ups_for_school_by_session(school, session)
-        make_ups_for_session_in_other_schools = MakeUpService.get_make_ups_excluding_current_school_by_session(school, session)
+        make_ups_for_session_in_current_school = MakeUpService.get_make_ups_for_school_by_session(
+            school, session)
+        make_ups_for_session_in_other_schools = MakeUpService.get_make_ups_excluding_current_school_by_session(
+            school, session)
         all_make_ups = list(
             chain(
                 make_ups_for_session_in_current_school,
                 make_ups_for_session_in_other_schools,
             )
         )
-        if len(all_make_ups)>0:
+        if len(all_make_ups) > 0:
             serializer = MakeUpSerializer(all_make_ups, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -117,7 +127,8 @@ class TrainersScheduleAvailableView(generics.GenericAPIView):
             school_id,
         )
         if trainer_schedules.exists():
-            serializer = TrainerScheduleSerializer(trainer_schedules, many=True)
+            serializer = TrainerScheduleSerializer(
+                trainer_schedules, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response({'detail': 'MakeUps not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -142,7 +153,8 @@ class UploadCourseExcelView(APIView):
         check_excel_format_in_request_data(request)
         school = School.objects.get(id="2d3db5ad-b3da-46f8-9d4b-0e65fdbe2f30")
         try:
-            CourseService.create_course_and_course_schedule_from_excel_by_school(request.data['file'], school)
+            CourseService.create_course_and_course_schedule_from_excel_by_school(
+                request.data['file'], school)
             return Response({'message': 'Data imported successfully'}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -167,7 +179,38 @@ class UploadStudentsExcelView(APIView):
 
 class CourseScheduleDetailView(mixins.ListModelMixin, generics.GenericAPIView):
     serializer_class = CourseScheduleSerializer
-    
+
     def get_queryset(self):
         school_id = "2d3db5ad-b3da-46f8-9d4b-0e65fdbe2f30"
         return CourseSchedule.objects.filter(course__school__id=school_id)
+
+
+class SignInView(generics.GenericAPIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    serializer_class = SignInSerializer
+
+    def post(self, request: Request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = UserService.get_user_by_username(
+            serializer.validated_data["username"])
+        user.save()
+        response = Response(self.get_serializer(user).data)
+        CookieJWTAuthentication.login(user, response)
+        return response
+
+
+class SchoolSetupView(mixins.CreateModelMixin,
+                      generics.GenericAPIView,
+                      ):
+
+    serializer_class = SchoolSetupSerializer
+    permission_classes = [IsAuthenticated, IsCoordinator]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def post(self, request: Request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)

@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -42,14 +43,57 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "recuperari.authentication.CookieJWTAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+}
+
+AUTH_USER_MODEL = 'recuperari.User'
+
+SLIDING_TOKEN_LIFETIME_SEC = 15 * 60
+SLIDING_TOKEN_REFRESH_LIFETIME_SEC = 6 * 60 * 60
+INVITE_JWT_LIFETIME_SEC = 24 * 60 * 60
+SIGNUP_JWT_LIFETIME_SEC = 15 * 60
+RESET_PASSWORD_LINK_JWT_LIFETIME_SEC = 24 * 60 * 60
+RESET_PASSWORD_JWT_LIFETIME_SEC = 15 * 60
+LONG_LIVE_SLIDING_TOKEN_LIFETIME_SEC = 30 * 24 * 60 * 60
+AUTH_COOKIE_KEY = "t"
+
+SIMPLE_JWT = {
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY,
+    "VERIFYING_KEY": None,
+    "AUDIENCE": None,
+    "ISSUER": "Sympatic, inc.",
+    "AUTH_HEADER_TYPES": ("Cookie", "Bearer"),
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.SlidingToken",),
+    "TOKEN_TYPE_CLAIM": "token_type",
+    "JTI_CLAIM": "jti",
+    "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
+    "SLIDING_TOKEN_LIFETIME": timedelta(seconds=SLIDING_TOKEN_LIFETIME_SEC),
+    "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(
+        seconds=SLIDING_TOKEN_REFRESH_LIFETIME_SEC
+    ),
+}
 
 ROOT_URLCONF = 'lsc_recuperari.urls'
 
