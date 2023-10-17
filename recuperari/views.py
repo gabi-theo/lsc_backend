@@ -227,7 +227,18 @@ class StudentProfileView(generics.RetrieveUpdateDestroyAPIView, generics.Generic
         return Response("Student deleted", status=status.HTTP_204_NO_CONTENT)
 
 
-class TrainerProfileView(generics.RetrieveUpdateDestroyAPIView, generics.GenericAPIView):
+class StudentCreateView(mixins.CreateModelMixin, generics.GenericAPIView):
+    serializer_class = StudentCreateUpdateSerializer
+    permission_classes = [IsAuthenticated, IsCoordinator]
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+
+class TrainerProfileView(
+    generics.RetrieveUpdateDestroyAPIView,
+    generics.GenericAPIView
+):
 
     serializer_class = TrainerCreateUpdateSerializer
     permission_classes = [IsAuthenticated, IsCoordinator]
@@ -236,8 +247,15 @@ class TrainerProfileView(generics.RetrieveUpdateDestroyAPIView, generics.Generic
         return TrainerService.get_trainer_by_id(self.kwargs["pk"])
 
     def delete(self, request, *args, **kwargs):
-        print(self.kwargs)
         trainer = get_object_or_404(Trainer, pk=self.kwargs["pk"])
         user = trainer.user
         user.delete()
         return Response("Trainer deleted", status=status.HTTP_204_NO_CONTENT)
+
+
+class TrainerCreateView(mixins.CreateModelMixin, generics.GenericAPIView):
+    serializer_class = TrainerCreateUpdateSerializer
+    permission_classes = [IsAuthenticated, IsCoordinator]
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)

@@ -47,6 +47,8 @@ class User(AbstractBaseUser):
         ("student", "Student"),
         ("coordinator", "Coordinator"),
     )
+    USERNAME_FIELD = "username"
+    REQUIRED_FIELDS = []
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     username = models.CharField(max_length=50, unique=True)
@@ -73,14 +75,12 @@ class User(AbstractBaseUser):
         ),
     )
     is_reset_password_token_expired = models.BooleanField(default=True)
-
-    USERNAME_FIELD = "username"
-    REQUIRED_FIELDS = []
-
-    objects = UserManager()
-
     role = models.CharField(max_length=20,
                             choices=ROLE_CHOICES, blank=True, null=True)
+    is_reset_password_needed = models.BooleanField(default=False)
+    objects = UserManager()
+
+
 
     def _str_(self):
         return self.get_username()
@@ -153,12 +153,9 @@ class Trainer(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, null=True)
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=50, unique=True)
     phone_contact = models.CharField(max_length=15)
     email_contact = models.EmailField()
-
-    # def __str__(self) -> str:
-    #     return self.id
 
 
 class Student(models.Model):

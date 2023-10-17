@@ -4,7 +4,7 @@ from rest_framework import serializers
 from .models import (Course, CourseDescription, CourseSchedule, MakeUp, School,
                      Session, SessionsDescription, Student, Trainer,
                      TrainerSchedule, User)
-
+from .services.trainer import TrainerService
 
 class CourseDescriptionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -154,3 +154,9 @@ class TrainerCreateUpdateSerializer(serializers.ModelSerializer):
             "phone_contact",
             "email_contact",
         ]
+
+    def create(self, validated_data):
+        validated_data["user"] = TrainerService.create_user_for_trainer(
+            username=self.validated_data["name"].replace(" ", ".").lower(),
+        )
+        return super().create(validated_data)

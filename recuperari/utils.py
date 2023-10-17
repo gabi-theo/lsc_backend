@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
-
+import secrets
+import string
 from django.conf import settings
 from rest_framework import status
 from rest_framework.response import Response
@@ -57,3 +58,10 @@ def check_excel_format_in_request_data(request):
             {'error': 'Invalid file format. Please provide an Excel file.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+
+def random_password_generator():
+    return ''.join(
+        secrets.choice(
+            string.ascii_letters + string.digits + string.punctuation
+        ) for _ in range(12))

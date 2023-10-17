@@ -79,6 +79,13 @@ RESET_PASSWORD_JWT_LIFETIME_SEC = 60 * 60
 LONG_LIVE_SLIDING_TOKEN_LIFETIME_SEC = 30 * 24 * 60 * 60
 AUTH_COOKIE_KEY = "t"
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.office365.com'
+EMAIL_PORT = 587  # Port for the SMTP server
+EMAIL_USE_TLS = True  # Use TLS for secure communication
+EMAIL_HOST_USER = 'gabi.isaila@logiscool.com'  # Shared email address
+EMAIL_HOST_PASSWORD = 'klwbmmymdpllzfpr'
+
 SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,

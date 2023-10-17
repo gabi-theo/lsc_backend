@@ -31,4 +31,4 @@ class StudentService:
 
     @staticmethod
     def get_student_by_id(student_id):
-        return Student.objects.filter(id=student_id)
+        return Student.objects.filter(id=student_id).first()
