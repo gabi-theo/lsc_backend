@@ -2,7 +2,7 @@ from django.db.models import Q
 
 from recuperari.models import Trainer, TrainerSchedule, User
 from recuperari.utils import random_password_generator
-from recuperari.services.emails import EmailService
+from recuperari.tasks import send_trainer_registration_email
 
 
 class TrainerService:
@@ -37,12 +37,9 @@ class TrainerService:
             is_reset_password_needed=True,
             role="trainer",
         )
-        print(password)
-        send_to = [trainer_email]
-        EmailService.send_email(
-            recipient_emails=send_to,
-            message="test email",
-            subject="test subject",
-            sender="gabi.isaila@logiscool.com"
-        )
+        print("Sending task")
+        send_trainer_registration_email.delay(
+            email=trainer_email,
+            username=username,
+            password=password)
         return user

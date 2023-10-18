@@ -9,8 +9,9 @@ class EmailService:
         subject: str,
         sender: str,
     ):
-        subject = 'Hello, Shared Email!'
-        message = 'This is a test email sent from my Django application using a shared email account.'
+        print("SENDING MAIL")
+        subject = subject
+        message = message
         from_email = sender
         recipient_list = recipient_emails
 

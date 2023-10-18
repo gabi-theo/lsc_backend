@@ -2,12 +2,13 @@ from django.urls import path
 
 from recuperari.views import (CourseScheduleDetailView, CoursesList,
                               MakeUpRequestNewView,
-                              MakeUpSessionsAvailableView, SchoolSetupView,
+                              MakeUpSessionsAvailableView,
+                              ResetPasswordView, SchoolSetupView,
                               SessionDescriptionList, SessionList, SignInView,
                               StudentProfileView, TrainerProfileView,
                               TrainerScheduleView, UploadCourseExcelView,
                               UploadStudentsExcelView, StudentCreateView,
-                              TrainerCreateView,)
+                              TrainerCreateView, SignOutView)
 
 urlpatterns = [
     path('courses/', CoursesList.as_view(), name='courses-list'),
@@ -51,9 +52,18 @@ urlpatterns = [
         CourseScheduleDetailView.as_view(),
     ),
     path(
-        "login/",
+        "auth/login/",
         SignInView.as_view(),
         name="login",
+    ),
+    path(
+        "auth/logout/",
+        SignOutView.as_view(),
+    ),
+    path(
+        "auth/reset_password/",
+        ResetPasswordView.as_view(),
+        name="reset_password",
     ),
     path(
         "school-setup/",

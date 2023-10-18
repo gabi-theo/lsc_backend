@@ -74,6 +74,7 @@ class User(AbstractBaseUser):
             "Unselect this instead of deleting accounts."
         ),
     )
+    is_reset_password_email_token_expired = models.BooleanField(default=True)
     is_reset_password_token_expired = models.BooleanField(default=True)
     role = models.CharField(max_length=20,
                             choices=ROLE_CHOICES, blank=True, null=True)

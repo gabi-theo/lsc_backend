@@ -14,6 +14,7 @@ from .models import Course, CourseSchedule, School, Student, Trainer, User
 from .permissions import IsCoordinator, IsStudent, IsTrainer
 from .serializers import (CourseScheduleSerializer, CourseSerializer,
                           ImportSerializer, MakeUpSerializer,
+                          ResetPasswordSerializer,
                           SchoolSetupSerializer, SessionDescriptionSerializer,
                           SessionSerializer, SignInSerializer,
                           StudentCreateUpdateSerializer,
@@ -27,6 +28,7 @@ from .services.trainer import TrainerService
 from .services.users import UserService
 from .utils import (check_excel_format_in_request_data,
                     format_whised_make_up_times)
+from lsc_recuperari import settings
 
 
 class CoursesList(generics.ListAPIView):
@@ -198,6 +200,16 @@ class SignInView(generics.GenericAPIView):
         return response
 
 
+class SignOutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(request):
+        response = Response({"message": "Bye, see you soon 😌"})
+        response.delete_cookie(settings.AUTH_COOKIE_KEY)
+
+        return response
+
+
 class SchoolSetupView(mixins.CreateModelMixin,
                       generics.GenericAPIView,
                       ):
@@ -259,3 +271,19 @@ class TrainerCreateView(mixins.CreateModelMixin, generics.GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
+
+
+class ResetPasswordView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated, IsCoordinator | IsTrainer]
+    serializer_class = ResetPasswordSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data["user"]
+        response = Response({"message": "Password Reset Successfully"})
+        user.set_password(serializer.validated_data.get("password"))
+        user.is_reset_password_needed = False
+        user.save()
+
+        return response

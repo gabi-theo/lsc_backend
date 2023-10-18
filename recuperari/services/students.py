@@ -1,7 +1,6 @@
 import pandas as pd
 
-from recuperari.models import Student
-
+from recuperari.models import Student, User
 from .course import CourseService
 
 
@@ -32,3 +31,15 @@ class StudentService:
     @staticmethod
     def get_student_by_id(student_id):
         return Student.objects.filter(id=student_id).first()
+
+    @staticmethod
+    def create_user_for_student(
+        username,
+        password,
+    ):
+        return User.objects.create_user(
+            username=username,
+            password=password,
+            is_reset_password_needed=True,
+            role="trainer",
+        )

@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'recuperari',
+    'core',
     'rest_framework',
     'corsheaders',
 ]
@@ -76,6 +77,8 @@ INVITE_JWT_LIFETIME_SEC = 24 * 60 * 60
 SIGNUP_JWT_LIFETIME_SEC = 60 * 60
 RESET_PASSWORD_LINK_JWT_LIFETIME_SEC = 24 * 60 * 60
 RESET_PASSWORD_JWT_LIFETIME_SEC = 60 * 60
+RESET_PASSWORD_TOKEN_KEY = "rpt"
+RESET_PASSWORD_LINK_TOKEN_KEY = "rplt"
 LONG_LIVE_SLIDING_TOKEN_LIFETIME_SEC = 30 * 24 * 60 * 60
 AUTH_COOKIE_KEY = "t"
 
@@ -85,6 +88,10 @@ EMAIL_PORT = 587  # Port for the SMTP server
 EMAIL_USE_TLS = True  # Use TLS for secure communication
 EMAIL_HOST_USER = 'gabi.isaila@logiscool.com'  # Shared email address
 EMAIL_HOST_PASSWORD = 'klwbmmymdpllzfpr'
+EMAILS_QUEUE = "emails"
+SYSTEM_ALARMS_QUEUE="system-alarms"
+
+CELERY_BROKER_URL = "redis://localhost:6379"
 
 SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,

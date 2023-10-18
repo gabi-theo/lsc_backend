@@ -4,7 +4,9 @@ import string
 from django.conf import settings
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import SlidingToken
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.tokens import SlidingToken, UntypedToken
+from rest_framework_simplejwt.exceptions import TokenError
 
 
 class LongLiveSlidingToken(SlidingToken):
@@ -65,3 +67,38 @@ def random_password_generator():
         secrets.choice(
             string.ascii_letters + string.digits + string.punctuation
         ) for _ in range(12))
+
+
+def generate_token_generic(jwt_lifetime_sec: int, **data) -> UntypedToken:
+    token = UntypedToken()
+    token.set_exp(lifetime=timedelta(seconds=jwt_lifetime_sec))
+    for k, v in data.items():
+        token[k] = v
+
+    return token
+
+def validate_token_generic(
+    token: str, token_key: str, token_location: str, *data_keys: str
+) -> dict:
+    try:
+        token = UntypedToken(token)
+        token.verify()
+    except TokenError:
+        auth_error_msg = f"'{token_key}' token is invalid or expired."
+    else:
+        result = {}
+        for key in data_keys:
+            value = token.get(key)
+            if not value:
+                auth_error_msg = (
+                    f"'{token_key}' token doesn't have '{key}' or value is empty"
+                )
+                break
+            result[key] = value
+        else:
+            return result
+
+    exc = AuthenticationFailed(auth_error_msg)
+    exc.auth_header = f"{token_location} '{token_key}'"
+
+    raise exc

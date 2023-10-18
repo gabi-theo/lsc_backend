@@ -1,10 +1,13 @@
 from django.contrib.auth import authenticate
+from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 from .models import (Course, CourseDescription, CourseSchedule, MakeUp, School,
                      Session, SessionsDescription, Student, Trainer,
                      TrainerSchedule, User)
 from .services.trainer import TrainerService
+from .services.students import StudentService
+
 
 class CourseDescriptionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -129,17 +132,35 @@ class SchoolSetupSerializer(serializers.ModelSerializer):
 class StudentCreateUpdateSerializer(serializers.ModelSerializer):
 
     id = serializers.CharField(read_only=True)
+    username = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True)
 
     class Meta:
         model = Student
         fields = [
             "id",
-            "school",
+            "username",
+            "password",
             "participant_name",
             "participant_parent_name",
             "parent_phone_number",
             "parent_email",
         ]
+
+    def validate(self, attrs):
+        attrs["user"] = StudentService.create_user_for_student(
+            attrs["username"],
+            attrs["password"],
+        )
+        del attrs["password"]
+        del attrs["username"]
+        return super().validate(attrs)
+
+    def create(self, validated_data):
+        request_user = self.context["request"].user
+        print(validated_data)
+        validated_data["school"] = request_user.course_school.first()
+        return super().create(validated_data)
 
 
 class TrainerCreateUpdateSerializer(serializers.ModelSerializer):
@@ -156,7 +177,30 @@ class TrainerCreateUpdateSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
-        validated_data["user"] = TrainerService.create_user_for_trainer(
+        validated_data["user"] = TrainerService.create_user_for_trainer_and_send_emai(
             username=self.validated_data["name"].replace(" ", ".").lower(),
+            trainer_email=self.validated_data["email_contact"]
         )
         return super().create(validated_data)
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    password = serializers.CharField()
+    user = serializers.HiddenField(default=None)
+
+    class Meta:
+        fields = [
+            "password",
+            "user",
+        ]
+
+    def validate(self, attrs: dict) -> dict:
+        attrs = super().validate(attrs)
+        request = self.context["request"]
+
+        user = request.user
+        validate_password(attrs["password"])
+
+        attrs["user"] = user
+
+        return attrs
