@@ -1,39 +1,34 @@
 from itertools import chain
+
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, mixins, status
+from rest_framework.generics import RetrieveUpdateDestroyAPIView
+from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.views import APIView
-from .models import (
-    Course,
-    CourseSchedule,
-    School,
-)
-from .serializers import (
-    CourseSerializer,
-    CourseScheduleSerializer,
-    ImportSerializer,
-    MakeUpSerializer,
-    SessionSerializer,
-    SessionDescriptionSerializer,
-    TrainerScheduleSerializer,
-    SchoolSetupSerializer,
-)
+
+from .authentication import CookieJWTAuthentication
+from .models import Course, CourseSchedule, School, Student, Trainer, User
+from .permissions import IsCoordinator, IsStudent, IsTrainer
+from .serializers import (CourseScheduleSerializer, CourseSerializer,
+                          ImportSerializer, MakeUpSerializer,
+                          ResetPasswordSerializer,
+                          SchoolSetupSerializer, SessionDescriptionSerializer,
+                          SessionSerializer, SignInSerializer,
+                          StudentCreateUpdateSerializer,
+                          TrainerCreateUpdateSerializer,
+                          TrainerScheduleSerializer)
 from .services.course import CourseService
 from .services.makeup import MakeUpService
 from .services.session import SessionService
 from .services.students import StudentService
 from .services.trainer import TrainerService
-from .utils import (
-    format_whised_make_up_times,
-    check_excel_format_in_request_data,
-)
-
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from .authentication import CookieJWTAuthentication
-from .serializers import SignInSerializer
-from rest_framework.request import Request
 from .services.users import UserService
-from .permissions import IsCoordinator
+from .utils import (check_excel_format_in_request_data,
+                    format_whised_make_up_times)
+from lsc_recuperari import settings
 
 
 class CoursesList(generics.ListAPIView):
@@ -205,6 +200,16 @@ class SignInView(generics.GenericAPIView):
         return response
 
 
+class SignOutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(request):
+        response = Response({"message": "Bye, see you soon 😌"})
+        response.delete_cookie(settings.AUTH_COOKIE_KEY)
+
+        return response
+
+
 class SchoolSetupView(mixins.CreateModelMixin,
                       generics.GenericAPIView,
                       ):
@@ -217,3 +222,68 @@ class SchoolSetupView(mixins.CreateModelMixin,
 
     def post(self, request: Request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
+
+
+class StudentProfileView(generics.RetrieveUpdateDestroyAPIView, generics.GenericAPIView):
+
+    serializer_class = StudentCreateUpdateSerializer
+    permission_classes = [IsAuthenticated, IsCoordinator]
+
+    def get_queryset(self):
+        return StudentService.get_student_by_id(self.kwargs["pk"])
+
+    def delete(self, request, *args, **kwargs):
+        student = get_object_or_404(Student, pk=self.kwargs["pk"])
+        user = student.user
+        user.delete()
+        return Response("Student deleted", status=status.HTTP_204_NO_CONTENT)
+
+
+class StudentCreateView(mixins.CreateModelMixin, generics.GenericAPIView):
+    serializer_class = StudentCreateUpdateSerializer
+    permission_classes = [IsAuthenticated, IsCoordinator]
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+
+class TrainerProfileView(
+    generics.RetrieveUpdateDestroyAPIView,
+    generics.GenericAPIView
+):
+
+    serializer_class = TrainerCreateUpdateSerializer
+    permission_classes = [IsAuthenticated, IsCoordinator]
+
+    def get_queryset(self):
+        return TrainerService.get_trainer_by_id(self.kwargs["pk"])
+
+    def delete(self, request, *args, **kwargs):
+        trainer = get_object_or_404(Trainer, pk=self.kwargs["pk"])
+        user = trainer.user
+        user.delete()
+        return Response("Trainer deleted", status=status.HTTP_204_NO_CONTENT)
+
+
+class TrainerCreateView(mixins.CreateModelMixin, generics.GenericAPIView):
+    serializer_class = TrainerCreateUpdateSerializer
+    permission_classes = [IsAuthenticated, IsCoordinator]
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+
+class ResetPasswordView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated, IsCoordinator | IsTrainer]
+    serializer_class = ResetPasswordSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data["user"]
+        response = Response({"message": "Password Reset Successfully"})
+        user.set_password(serializer.validated_data.get("password"))
+        user.is_reset_password_needed = False
+        user.save()
+
+        return response

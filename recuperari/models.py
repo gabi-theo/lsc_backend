@@ -1,7 +1,8 @@
-from django.db import models
 import uuid
+
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser
+from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 
@@ -46,6 +47,8 @@ class User(AbstractBaseUser):
         ("student", "Student"),
         ("coordinator", "Coordinator"),
     )
+    USERNAME_FIELD = "username"
+    REQUIRED_FIELDS = []
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     username = models.CharField(max_length=50, unique=True)
@@ -71,15 +74,14 @@ class User(AbstractBaseUser):
             "Unselect this instead of deleting accounts."
         ),
     )
+    is_reset_password_email_token_expired = models.BooleanField(default=True)
     is_reset_password_token_expired = models.BooleanField(default=True)
-
-    USERNAME_FIELD = "username"
-    REQUIRED_FIELDS = []
-
-    objects = UserManager()
-
     role = models.CharField(max_length=20,
                             choices=ROLE_CHOICES, blank=True, null=True)
+    is_reset_password_needed = models.BooleanField(default=False)
+    objects = UserManager()
+
+
 
     def _str_(self):
         return self.get_username()
@@ -152,7 +154,7 @@ class Trainer(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, null=True)
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=50, unique=True)
     phone_contact = models.CharField(max_length=15)
     email_contact = models.EmailField()
 
@@ -175,8 +177,8 @@ class Student(models.Model):
         max_length=20, null=False, blank=False)
     parent_email = models.CharField(max_length=50, null=False, blank=False)
 
-    def __str__(self) -> str:
-        return self.participant_name
+    # def __str__(self) -> str:
+    #     return self.participant_name
 
 
 class CourseSchedule(models.Model):

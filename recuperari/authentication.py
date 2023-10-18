@@ -3,8 +3,10 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import SlidingToken
-from django.conf import settings
-from recuperari.utils import LongLiveSlidingToken, set_token_to_header, set_value_to_cookie
+
+from recuperari.utils import (LongLiveSlidingToken, set_token_to_header,
+                              set_value_to_cookie)
+
 from .models import User
 
 

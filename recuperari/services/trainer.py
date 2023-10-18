@@ -1,5 +1,8 @@
-from recuperari.models import TrainerSchedule
 from django.db.models import Q
+
+from recuperari.models import Trainer, TrainerSchedule, User
+from recuperari.utils import random_password_generator
+from recuperari.tasks import send_trainer_registration_email
 
 
 class TrainerService:
@@ -20,3 +23,23 @@ class TrainerService:
             Q(available_for_make_up=True) &
             Q(school=school)
         )
+
+    @staticmethod
+    def get_trainer_by_id(trainer_id):
+        return Trainer.objects.filter(id=trainer_id).first()
+
+    @staticmethod
+    def create_user_for_trainer_and_send_emai(username, trainer_email):
+        password = random_password_generator()
+        user = User.objects.create_user(
+            username=username,
+            password=password,
+            is_reset_password_needed=True,
+            role="trainer",
+        )
+        print("Sending task")
+        send_trainer_registration_email.delay(
+            email=trainer_email,
+            username=username,
+            password=password)
+        return user

@@ -1,17 +1,14 @@
 from django.urls import path
-from recuperari.views import (
-    CoursesList,
-    CourseScheduleDetailView,
-    MakeUpRequestNewView,
-    MakeUpSessionsAvailableView,
-    SessionList,
-    SessionDescriptionList,
-    TrainerScheduleView,
-    UploadCourseExcelView,
-    UploadStudentsExcelView,
-    SignInView,
-    SchoolSetupView,
-)
+
+from recuperari.views import (CourseScheduleDetailView, CoursesList,
+                              MakeUpRequestNewView,
+                              MakeUpSessionsAvailableView,
+                              ResetPasswordView, SchoolSetupView,
+                              SessionDescriptionList, SessionList, SignInView,
+                              StudentProfileView, TrainerProfileView,
+                              TrainerScheduleView, UploadCourseExcelView,
+                              UploadStudentsExcelView, StudentCreateView,
+                              TrainerCreateView, SignOutView)
 
 urlpatterns = [
     path('courses/', CoursesList.as_view(), name='courses-list'),
@@ -55,13 +52,42 @@ urlpatterns = [
         CourseScheduleDetailView.as_view(),
     ),
     path(
-        "login/",
+        "auth/login/",
         SignInView.as_view(),
         name="login",
+    ),
+    path(
+        "auth/logout/",
+        SignOutView.as_view(),
+    ),
+    path(
+        "auth/reset_password/",
+        ResetPasswordView.as_view(),
+        name="reset_password",
     ),
     path(
         "school-setup/",
         SchoolSetupView.as_view(),
         name="school-setup"
-    )
+    ),
+    path(
+        "trainer-profile/<uuid:pk>",
+        TrainerProfileView.as_view(),
+        name="trainer-profile"
+    ),
+    path(
+        "trainer-create",
+        TrainerCreateView.as_view(),
+        name="trainer-profile"
+    ),
+    path(
+        "student-profile/<uuid:pk>",
+        StudentProfileView.as_view(),
+        name="student-profile"
+    ),
+    path(
+        "student-create",
+        StudentCreateView.as_view(),
+        name="student-profile"
+    ),
 ]
