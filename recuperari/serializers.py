@@ -204,3 +204,18 @@ class ResetPasswordSerializer(serializers.Serializer):
         attrs["user"] = user
 
         return attrs
+
+
+class StudentsEmailSerializer(serializers.Serializer):
+    groups = serializers.CharField()
+    message = serializers.CharField()
+    send_mail = serializers.BooleanField(default=True)
+    send_whatsapp = serializers.BooleanField(default=False)
+
+    class Meta:
+        fields = [
+            "groups",
+            "message",
+            "send_mail",
+            "send_whatsapp",
+        ]
