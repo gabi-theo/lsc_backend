@@ -208,6 +208,7 @@ class ResetPasswordSerializer(serializers.Serializer):
 
 class StudentsEmailSerializer(serializers.Serializer):
     groups = serializers.CharField()
+    subject = serializers.CharField()
     message = serializers.CharField()
     send_mail = serializers.BooleanField(default=True)
     send_whatsapp = serializers.BooleanField(default=False)
@@ -215,6 +216,7 @@ class StudentsEmailSerializer(serializers.Serializer):
     class Meta:
         fields = [
             "groups",
+            "subject",
             "message",
             "send_mail",
             "send_whatsapp",

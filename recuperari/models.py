@@ -211,7 +211,7 @@ class CourseSchedule(models.Model):
     )
     time = models.TimeField(null=False)
     trainer = models.ManyToManyField(Trainer)
-    students = models.ManyToManyField(Student)
+    students = models.ManyToManyField(Student, related_name="course_schedule_students")
     course_type = models.CharField(max_length=10, choices=TYPE)
 
     def __str__(self) -> str:

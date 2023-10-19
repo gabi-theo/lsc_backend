@@ -1,14 +1,25 @@
 from django.urls import path
 
-from recuperari.views import (CourseScheduleDetailView, CoursesList,
-                              MakeUpRequestNewView,
-                              MakeUpSessionsAvailableView,
-                              ResetPasswordView, SchoolSetupView,
-                              SessionDescriptionList, SessionList, SignInView,
-                              StudentProfileView, TrainerProfileView,
-                              TrainerScheduleView, UploadCourseExcelView,
-                              UploadStudentsExcelView, StudentCreateView,
-                              TrainerCreateView, SignOutView)
+from recuperari.views import (
+    CourseScheduleDetailView,
+    CoursesList,
+    MakeUpRequestNewView,
+    MakeUpSessionsAvailableView,
+    ResetPasswordView,
+    SchoolSetupView,
+    SendEmailToGroupsView,
+    SessionDescriptionList,
+    SessionList,
+    SignInView,
+    StudentProfileView,
+    TrainerProfileView,
+    TrainerScheduleView,
+    UploadCourseExcelView,
+    UploadStudentsExcelView,
+    StudentCreateView,
+    TrainerCreateView,
+    SignOutView,
+)
 
 urlpatterns = [
     path('courses/', CoursesList.as_view(), name='courses-list'),
@@ -90,4 +101,8 @@ urlpatterns = [
         StudentCreateView.as_view(),
         name="student-profile"
     ),
+    path(
+        "send-group-email",
+        SendEmailToGroupsView.as_view(),
+    )
 ]

@@ -1,6 +1,7 @@
 import pandas as pd
 
 from recuperari.models import Student, User
+from recuperari.tasks import send_students_email
 from .course import CourseService
 
 
@@ -43,3 +44,21 @@ class StudentService:
             is_reset_password_needed=True,
             role="trainer",
         )
+
+    @staticmethod
+    def send_emails_to_students_in_groups(groups:str, subject:str, message:str):
+        groups = groups.split(",")
+        for group_pk in groups:
+            student_emails = []
+            group_students = CourseService.get_students_from_course_schedule(group_pk)
+            for student in group_students:
+                student_emails.append(student.parent_email)
+            send_students_email.delay(
+                student_emails,
+                message,
+                subject,
+            )
+
+    @classmethod
+    def send_whatsapp_to_students_in_groups(cls, groups:str, subject:str, message:str):
+        pass

@@ -12,7 +12,7 @@ class CourseService:
         time,
     ):
         try:
-            CourseSchedule.objects.get(
+            return CourseSchedule.objects.get(
                 group_name=group_name,
                 day=day,
                 time=time)
@@ -20,11 +20,10 @@ class CourseService:
             print(
                 f"Error for group_name{group_name} on day {day} and time {time}")
             pass
-        return CourseSchedule.objects.filter(
-            group_name=group_name,
-            day=day,
-            time=time
-        ).first()
+
+    @staticmethod
+    def get_course_schedule_by_pk(pk):
+        return CourseSchedule.objects.get(pk=pk)
 
     @staticmethod
     def create_course_and_course_schedule_from_excel_by_school(
@@ -60,3 +59,8 @@ class CourseService:
             group_name, day, time,
         )
         course_schedule.students.add(student)
+
+    @classmethod
+    def get_students_from_course_schedule(cls, course_schedule_pk):
+        course_schedule = cls.get_course_schedule_by_pk(course_schedule_pk)
+        return course_schedule.students.all()

@@ -148,13 +148,13 @@ class SendEmailToGroupsView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         if serializer.validated_data["send_mail"]:
-            EmailService.send_emails_to_students_in_groups(
+            StudentService.send_emails_to_students_in_groups(
                 groups=serializer.validated_data["groups"],
                 subject=serializer.validated_data["subject"],
                 message=serializer.validated_data["message"],
             )
         if serializer.validated_data["send_whatsapp"]:
-            EmailService.send_emails_to_students_in_groups(
+            StudentService.send_whatsapp_to_students_in_groups(
                 groups=serializer.validated_data["groups"],
                 subject=serializer.validated_data["subject"],
                 message=serializer.validated_data["message"],
