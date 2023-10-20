@@ -212,11 +212,24 @@ class CourseSchedule(models.Model):
     )
     time = models.TimeField(null=False)
     trainer = models.ManyToManyField(Trainer)
-    students = models.ManyToManyField(Student, related_name="course_schedule_students")
+    students = models.ManyToManyField(
+        Student,
+        related_name="course_schedule_students",
+        through='StudentCourseSchedule',
+    )
     course_type = models.CharField(max_length=10, choices=TYPE)
 
     def __str__(self) -> str:
         return self.group_name
+
+
+class StudentCourseSchedule(models.Model):
+    course_schedule = models.ForeignKey(CourseSchedule, on_delete=models.CASCADE)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    start_date = models.DateField()
+    
+    class Meta:
+        unique_together = ('course_schedule', 'student')
 
 
 class TrainerSchedule(models.Model):
