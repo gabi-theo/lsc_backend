@@ -176,9 +176,10 @@ class Student(models.Model):
     parent_phone_number = models.CharField(
         max_length=20, null=False, blank=False)
     parent_email = models.CharField(max_length=50, null=False, blank=False)
+    student_active = models.BooleanField(default=True)
 
-    # def __str__(self) -> str:
-    #     return self.participant_name
+    def __str__(self) -> str:
+        return self.participant_name
 
 
 class CourseSchedule(models.Model):

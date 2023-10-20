@@ -26,6 +26,10 @@ class CourseService:
         return CourseSchedule.objects.get(pk=pk)
 
     @staticmethod
+    def get_course_schedules_by_pks(pks):
+        return CourseSchedule.objects.filter(pk__in=pks)
+
+    @staticmethod
     def create_course_and_course_schedule_from_excel_by_school(
         excel_file,
         school,
@@ -61,6 +65,17 @@ class CourseService:
         course_schedule.students.add(student)
 
     @classmethod
-    def get_students_from_course_schedule(cls, course_schedule_pk):
-        course_schedule = cls.get_course_schedule_by_pk(course_schedule_pk)
-        return course_schedule.students.all()
+    def get_students_from_course_schedule_by_course_schedule_pks(cls, course_schedule_pks):
+        course_schedules = cls.get_course_schedules_by_pks(
+            course_schedule_pks)
+        students_list = []
+        for course_schedule in course_schedules:
+            students_for_schedule = course_schedule.students.all()
+            students_list.extend(students_for_schedule)
+        return students_list
+
+    @classmethod
+    def get_emails_of_students_from_course_schedule_by_schedule_pks(cls, course_schedule_pks):
+        all_students = cls.get_students_from_course_schedule_by_course_schedule_pks(
+            course_schedule_pks)
+        return list(set([stud.parent_email for stud in all_students]))

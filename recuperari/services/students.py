@@ -47,18 +47,27 @@ class StudentService:
 
     @staticmethod
     def send_emails_to_students_in_groups(groups:str, subject:str, message:str):
-        groups = groups.split(",")
-        for group_pk in groups:
-            student_emails = []
-            group_students = CourseService.get_students_from_course_schedule(group_pk)
-            for student in group_students:
-                student_emails.append(student.parent_email)
-            send_students_email.delay(
-                student_emails,
-                message,
-                subject,
-            )
+        groups_pks = groups.split(",")
+        student_emails = []
+        if len(groups_pks) == 1 and groups_pks[0] == "all":
+            student_emails = StudentService.get_emails_from_all_active_students()
+        else:
+            student_emails = CourseService.get_emails_of_students_from_course_schedule_by_schedule_pks(
+                        groups_pks)
+
+        send_students_email.delay(
+            student_emails,
+            message,
+            subject,
+        )
 
     @classmethod
     def send_whatsapp_to_students_in_groups(cls, groups:str, subject:str, message:str):
         pass
+
+    @staticmethod
+    def get_emails_from_all_active_students():
+        return list(
+            Student.objects.filter(
+                student_active=True
+            ).values_list('parent_email', flat=True).distinct())
