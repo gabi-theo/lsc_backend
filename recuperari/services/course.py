@@ -65,17 +65,17 @@ class CourseService:
         course_schedule.students.add(student)
 
     @classmethod
-    def get_students_from_course_schedule_by_course_schedule_pks(cls, course_schedule_pks):
+    def get_active_students_from_course_schedule_by_course_schedule_pks(cls, course_schedule_pks):
         course_schedules = cls.get_course_schedules_by_pks(
             course_schedule_pks)
         students_list = []
         for course_schedule in course_schedules:
-            students_for_schedule = course_schedule.students.all()
+            students_for_schedule = course_schedule.students.filter(student_active=True)
             students_list.extend(students_for_schedule)
         return students_list
 
     @classmethod
     def get_emails_of_students_from_course_schedule_by_schedule_pks(cls, course_schedule_pks):
-        all_students = cls.get_students_from_course_schedule_by_course_schedule_pks(
+        all_students = cls.get_active_students_from_course_schedule_by_course_schedule_pks(
             course_schedule_pks)
         return list(set([stud.parent_email for stud in all_students]))
