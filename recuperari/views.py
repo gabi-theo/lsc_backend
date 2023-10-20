@@ -18,9 +18,11 @@ from .serializers import (CourseScheduleSerializer, CourseSerializer,
                           SchoolSetupSerializer, SessionDescriptionSerializer,
                           SessionSerializer, SignInSerializer,
                           StudentCreateUpdateSerializer,
+                          StudentsEmailSerializer,
                           TrainerCreateUpdateSerializer,
                           TrainerScheduleSerializer)
 from .services.course import CourseService
+from .services.emails import EmailService
 from .services.makeup import MakeUpService
 from .services.session import SessionService
 from .services.students import StudentService
@@ -138,9 +140,26 @@ class MakeUpRequestNewView(mixins.CreateModelMixin, generics.GenericAPIView):
         return self.create(request, *args, **kwargs)
 
 
-class SendMassEmail(generics.GenericAPIView):
+class SendEmailToGroupsView(generics.GenericAPIView):
+    serializer_class = StudentsEmailSerializer
+    permission_classes = [IsAuthenticated, IsCoordinator]
+
     def post(self, request, *args, **kwargs):
-        pass
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if serializer.validated_data["send_mail"]:
+            StudentService.send_emails_to_students_in_groups(
+                groups=serializer.validated_data["groups"],
+                subject=serializer.validated_data["subject"],
+                message=serializer.validated_data["message"],
+            )
+        if serializer.validated_data["send_whatsapp"]:
+            StudentService.send_whatsapp_to_students_in_groups(
+                groups=serializer.validated_data["groups"],
+                subject=serializer.validated_data["subject"],
+                message=serializer.validated_data["message"],
+            )
+        return Response({"message": "Mails sent successfully"}, status.HTTP_200_OK)
 
 
 class UploadCourseExcelView(APIView):
