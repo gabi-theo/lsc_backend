@@ -19,3 +19,7 @@ class SessionService:
     @staticmethod
     def get_session_description_by_course_id(course_id):
         return SessionsDescription.objects.filter(course=course_id)
+
+    @staticmethod
+    def get_sessions_by_user_school(user):
+        return Session.objects.filter(course_session__course__school__user=user)

@@ -16,11 +16,13 @@ from .serializers import (CourseScheduleSerializer, CourseSerializer,
                           ImportSerializer, MakeUpSerializer,
                           ResetPasswordSerializer,
                           SchoolSetupSerializer, SessionDescriptionSerializer,
+                          SessionListSerializer,
                           SessionSerializer, SignInSerializer,
                           StudentCreateUpdateSerializer,
                           StudentsEmailSerializer,
                           TrainerCreateUpdateSerializer,
-                          TrainerScheduleSerializer)
+                          TrainerScheduleSerializer,
+                          StudentCourseScheduleSerializer)
 from .services.course import CourseService
 from .services.emails import EmailService
 from .services.makeup import MakeUpService
@@ -53,6 +55,15 @@ class SessionDescriptionList(generics.ListAPIView):
 
     def get_queryset(self):
         return SessionService.get_session_description_by_course_id(self.kwargs['course_id'])
+
+
+class SessionsAndMakeUpsListView(generics.ListAPIView):
+    # TODO: implement filters for dates. Default should be today
+    serializer_class = SessionListSerializer
+    permission_classes = [IsAuthenticated, IsCoordinator, IsTrainer]
+
+    def get_queryset(self):
+        return SessionService.get_sessions_by_user_school(self.request.user)
 
 
 class TrainerScheduleView(
@@ -194,6 +205,24 @@ class UploadStudentsExcelView(APIView):
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class UploadStudentCourseScheduleFirstDayView(APIView):
+    permission_classes = (IsAuthenticated, IsCoordinator)
+    serializer_class = ImportSerializer
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request, *args, **kwargs):
+        check_excel_format_in_request_data(request)
+        school = request.user.course_school.first()
+        try:
+            StudentService.add_student_start_day_of_course(
+                request.data['file'],
+                school,
+            )
+            return Response({'message': 'Data imported successfully'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class CourseScheduleDetailView(mixins.ListModelMixin, generics.GenericAPIView):
     serializer_class = CourseScheduleSerializer
 
@@ -306,3 +335,13 @@ class ResetPasswordView(generics.GenericAPIView):
         user.save()
 
         return response
+
+
+class StudentCourseScheduleListView(generics.ListAPIView):
+    permission_classes = (IsAuthenticated, IsCoordinator)
+    serializer_class = StudentCourseScheduleSerializer
+
+    def get_queryset(self):
+        return StudentService.get_students_first_day_of_course_by_school(
+            school=self.request.user.course_school.first()
+        )
