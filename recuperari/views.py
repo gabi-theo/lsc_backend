@@ -80,12 +80,11 @@ class MakeUpSessionsAvailableView(mixins.CreateModelMixin, generics.GenericAPIVi
         """
             view for getting all available make_ups for a session
             body_example:{
-                "school_id": "2d3db5ad-b3da-46f8-9d4b-0e65fdbe2f30",
                 "session_id": "ff867fe5-d7cc-4ce3-a6af-8c8fd43d3dbe"
             }
         """
         session_id = request.data.get('session_id')
-        school = request.data.get("school_id")
+        school = request.user.course_school.first()
 
         session = SessionService.get_session_by_id(session_id)
         make_ups_for_session_in_current_school = MakeUpService.get_make_ups_for_school_by_session(
@@ -112,7 +111,7 @@ class TrainersScheduleAvailableView(generics.GenericAPIView):
     serializer_class = TrainerScheduleSerializer
 
     def get(self, request, *args, **kwargs):
-        school_id = request.data.get("school_id")
+        school_id = request.user.course_school.first().id
         wished_make_up_date, wished_make_up_min_time, wished_make_up_max_time = format_whised_make_up_times(
             request.data.get("wished_make_up_date"),
             request.data.get("wished_make_up_min_time"),
@@ -198,8 +197,8 @@ class CourseScheduleDetailView(mixins.ListModelMixin, generics.GenericAPIView):
     serializer_class = CourseScheduleSerializer
 
     def get_queryset(self):
-        school_id = "2d3db5ad-b3da-46f8-9d4b-0e65fdbe2f30"
-        return CourseSchedule.objects.filter(course__school__id=school_id)
+        school = self.request.user.course_school.first()
+        return CourseSchedule.objects.filter(course__school=school)
 
 
 class SignInView(generics.GenericAPIView):

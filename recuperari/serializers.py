@@ -40,7 +40,7 @@ class SessionDescriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = SessionsDescription
         fields = ['course', 'min_session_no_description',
-                  'max_session_no_description']
+                  'max_session_no_description', 'description', 'created_at', 'updated_at']
 
 
 class SessionSerializer(serializers.ModelSerializer):
@@ -48,7 +48,7 @@ class SessionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Session
-        fields = ['course_session', 'session_passed', 'date',
+        fields = ['id', 'course_session', 'session_passed', 'date',
                   'session_no', 'absent_participants', 'made_up', 'course_session']
 
 
