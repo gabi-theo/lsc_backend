@@ -211,7 +211,7 @@ class CourseSchedule(models.Model):
         choices=DAYS,
     )
     time = models.TimeField(null=False)
-    trainer = models.ManyToManyField(Trainer)
+    default_trainer = models.ForeignKey(Trainer, on_delete=models.SET_NULL, null=True, blank=True)
     students = models.ManyToManyField(
         Student,
         related_name="course_schedule_students",
@@ -226,10 +226,13 @@ class CourseSchedule(models.Model):
 class StudentCourseSchedule(models.Model):
     course_schedule = models.ForeignKey(CourseSchedule, on_delete=models.CASCADE)
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    start_date = models.DateField()
+    start_date = models.DateField(null=True, blank=True)
     
     class Meta:
         unique_together = ('course_schedule', 'student')
+
+    def __str__(self) -> str:
+        return self.student.participant_name + " " + self.course_schedule.group_name
 
 
 class TrainerSchedule(models.Model):
@@ -252,23 +255,22 @@ class Session(models.Model):
         CourseSchedule,
         on_delete=models.CASCADE,
     )
+    session_trainer = models.ForeignKey(
+        Trainer,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="In case other trainer will replace a trainer",
+    )
     session_passed = models.BooleanField(default=False)
     date = models.DateField()
     session_no = models.SmallIntegerField()
     absent_participants = models.ManyToManyField(Student)
-    made_up = models.BooleanField(default=False)
     can_have_online_make_up = models.BooleanField(default=True)
     can_have_on_site_make_up = models.BooleanField(default=True)
 
     def __str__(self) -> str:
         return f"{self.course_session} - {self.session_no}"
-
-
-# TODO: Check if needed
-# class StudentMakeUp(models.Model):
-#     student = models.ForeignKey(Student, on_delete=models.CASCADE)
-#     session = models.ForeignKey(Session, on_delete=models.CASCADE)
-#     made_up = models.BooleanField(default=False)
 
 
 class MakeUp(models.Model):
@@ -289,6 +291,13 @@ class MakeUp(models.Model):
         Trainer, on_delete=models.SET_NULL, null=True, blank=True)
     make_up_approved = models.BooleanField(default=False)
     make_up_completed = models.BooleanField(default=False)
+    students = models.ManyToManyField(Student, through="StudentMakeUp")
+
+
+class StudentMakeUp(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="student_make_ups")
+    make_up_session = models.ForeignKey(MakeUp, on_delete=models.CASCADE, related_name="session_make_ups")
+    made_up = models.BooleanField(default=False)
 
 
 class CourseDescription(models.Model):
