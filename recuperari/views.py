@@ -336,7 +336,7 @@ class ResetPasswordView(generics.GenericAPIView):
         return response
 
 
-class StudentCourseScheduleListView(generics.ListAPIView):
+class StudentFirstDayListView(generics.ListAPIView):
     permission_classes = (IsAuthenticated, IsCoordinator)
     serializer_class = StudentCourseScheduleSerializer
 

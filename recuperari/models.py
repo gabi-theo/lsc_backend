@@ -227,7 +227,7 @@ class StudentCourseSchedule(models.Model):
     course_schedule = models.ForeignKey(CourseSchedule, on_delete=models.CASCADE)
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     start_date = models.DateField(null=True, blank=True)
-    
+
     class Meta:
         unique_together = ('course_schedule', 'student')
 

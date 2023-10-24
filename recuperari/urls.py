@@ -18,7 +18,7 @@ from recuperari.views import (
     UploadStudentsExcelView,
     UploadStudentCourseScheduleFirstDayView,
     StudentCreateView,
-    StudentCourseScheduleListView,
+    StudentFirstDayListView,
     TrainerCreateView,
     SignOutView,
 )
@@ -112,7 +112,7 @@ urlpatterns = [
         SendEmailToGroupsView.as_view(),
     ),
     path(
-        'student-course-schedules/',
-        StudentCourseScheduleListView.as_view(),
-        name='student-course-schedule-list'),
+        'student-course-first-day/',
+        StudentFirstDayListView.as_view(),
+        name='student-course-first-day-list'),
 ]
