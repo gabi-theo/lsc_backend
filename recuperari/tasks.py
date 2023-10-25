@@ -20,3 +20,13 @@ Parola: {password}
         subject="Invitatie internal_lsc",
         sender="gabi.isaila@logiscool.com"
     )
+
+
+@shared_task
+def send_students_email(emails, subject, message):
+    EmailService.send_email(
+        recipient_emails=emails,
+        message=message,
+        subject=subject,
+        sender="gabi.isaila@logiscool.com",
+    )

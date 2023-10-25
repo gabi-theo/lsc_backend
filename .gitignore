@@ -156,3 +156,5 @@ venv/
 # pipenv
 Pipfile
 Pipfile.lock
+
+.env

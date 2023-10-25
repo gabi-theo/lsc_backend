@@ -19,9 +19,11 @@ from .serializers import (CourseScheduleSerializer, CourseSerializer,
                           ResetPasswordSerializer, SchoolSetupSerializer,
                           SessionDescriptionSerializer, SessionSerializer,
                           SignInSerializer, StudentCreateUpdateSerializer,
+                          StudentsEmailSerializer,
                           TrainerCreateUpdateSerializer,
                           TrainerScheduleSerializer)
 from .services.course import CourseService
+from .services.emails import EmailService
 from .services.makeup import MakeUpService
 from .services.session import SessionService
 from .services.students import StudentService
@@ -78,12 +80,11 @@ class MakeUpSessionsAvailableView(mixins.CreateModelMixin, generics.GenericAPIVi
         """
             view for getting all available make_ups for a session
             body_example:{
-                "school_id": "2d3db5ad-b3da-46f8-9d4b-0e65fdbe2f30",
                 "session_id": "ff867fe5-d7cc-4ce3-a6af-8c8fd43d3dbe"
             }
         """
         session_id = request.data.get('session_id')
-        school = request.data.get("school_id")
+        school = request.user.course_school.first()
 
         session = SessionService.get_session_by_id(session_id)
         make_ups_for_session_in_current_school = MakeUpService.get_make_ups_for_school_by_session(
@@ -110,7 +111,7 @@ class TrainersScheduleAvailableView(generics.GenericAPIView):
     serializer_class = TrainerScheduleSerializer
 
     def get(self, request, *args, **kwargs):
-        school_id = request.data.get("school_id")
+        school_id = request.user.course_school.first().id
         wished_make_up_date, wished_make_up_min_time, wished_make_up_max_time = format_whised_make_up_times(
             request.data.get("wished_make_up_date"),
             request.data.get("wished_make_up_min_time"),
@@ -138,9 +139,26 @@ class MakeUpRequestNewView(mixins.CreateModelMixin, generics.GenericAPIView):
         return self.create(request, *args, **kwargs)
 
 
-class SendMassEmail(generics.GenericAPIView):
+class SendEmailToGroupsView(generics.GenericAPIView):
+    serializer_class = StudentsEmailSerializer
+    permission_classes = [IsAuthenticated, IsCoordinator]
+
     def post(self, request, *args, **kwargs):
-        pass
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if serializer.validated_data["send_mail"]:
+            StudentService.send_emails_to_students_in_groups(
+                groups=serializer.validated_data["groups"],
+                subject=serializer.validated_data["subject"],
+                message=serializer.validated_data["message"],
+            )
+        if serializer.validated_data["send_whatsapp"]:
+            StudentService.send_whatsapp_to_students_in_groups(
+                groups=serializer.validated_data["groups"],
+                subject=serializer.validated_data["subject"],
+                message=serializer.validated_data["message"],
+            )
+        return Response({"message": "Mails sent successfully"}, status.HTTP_200_OK)
 
 
 class UploadCourseExcelView(APIView):
@@ -179,8 +197,8 @@ class CourseScheduleDetailView(mixins.ListModelMixin, generics.GenericAPIView):
     serializer_class = CourseScheduleSerializer
 
     def get_queryset(self):
-        school_id = "2d3db5ad-b3da-46f8-9d4b-0e65fdbe2f30"
-        return CourseSchedule.objects.filter(course__school__id=school_id)
+        school = self.request.user.course_school.first()
+        return CourseSchedule.objects.filter(course__school=school)
 
 
 class SignInView(generics.GenericAPIView):
