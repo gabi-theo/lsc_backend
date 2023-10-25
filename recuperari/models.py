@@ -81,8 +81,6 @@ class User(AbstractBaseUser):
     is_reset_password_needed = models.BooleanField(default=False)
     objects = UserManager()
 
-
-
     def _str_(self):
         return self.get_username()
 
@@ -158,6 +156,9 @@ class Trainer(models.Model):
     phone_contact = models.CharField(max_length=15)
     email_contact = models.EmailField()
 
+    def __str__(self) -> str:
+        return self.name
+
 
 class Student(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -177,8 +178,8 @@ class Student(models.Model):
         max_length=20, null=False, blank=False)
     parent_email = models.CharField(max_length=50, null=False, blank=False)
 
-    # def __str__(self) -> str:
-    #     return self.participant_name
+    def __str__(self) -> str:
+        return self.participant_name
 
 
 class CourseSchedule(models.Model):
@@ -296,3 +297,12 @@ class SessionsDescription(models.Model):
     description = models.TextField(max_length=1000)
     created_at = models.DateTimeField(auto_now_add=True, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class TimeOff(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    start_day = models.DateField(null=False, blank=False)
+    end_day = models.DateField(null=False, blank=False)
+
+    def __str__(self) -> str:
+        return f"Vacanta: {self.start_day.isoformat()} - {self.end_day.isoformat()}"
