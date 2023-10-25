@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     'core',
     'rest_framework',
     'corsheaders',
+    'django_celery_beat',
+    'django_celery_results',
 ]
 
 CORS_ALLOWED_ORIGINS = [
@@ -89,9 +91,11 @@ EMAIL_USE_TLS = True  # Use TLS for secure communication
 EMAIL_HOST_USER = 'gabi.isaila@logiscool.com'  # Shared email address
 EMAIL_HOST_PASSWORD = 'klwbmmymdpllzfpr'
 EMAILS_QUEUE = "emails"
-SYSTEM_ALARMS_QUEUE="system-alarms"
+SYSTEM_ALARMS_QUEUE = "system-alarms"
 
 CELERY_BROKER_URL = "redis://localhost:6379"
+
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 
 SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,

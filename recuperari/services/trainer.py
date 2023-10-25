@@ -1,8 +1,8 @@
 from django.db.models import Q
 
 from recuperari.models import Trainer, TrainerSchedule, User
-from recuperari.utils import random_password_generator
 from recuperari.tasks import send_trainer_registration_email
+from recuperari.utils import random_password_generator
 
 
 class TrainerService:
