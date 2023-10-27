@@ -4,6 +4,7 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from encrypted_field import EncryptedField
 
 
 class UserManager(BaseUserManager):
@@ -110,8 +111,9 @@ class School(models.Model):
     room_count = models.PositiveSmallIntegerField(
         null=False,
         blank=False
-    )
-
+    ),
+    cif = models.CharField(null=True, blank=True, max_length=10)
+    smart_bill_api_key = EncryptedField()
     def __str__(self) -> str:
         return self.name
 
@@ -319,3 +321,20 @@ class SessionsDescription(models.Model):
     description = models.TextField(max_length=1000)
     created_at = models.DateTimeField(auto_now_add=True, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class Invoices(models.Model):
+    INVOICE_TYPE = (
+        ("emisa", "Emisa"),
+        ("stornata", "Stornata"),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    invoice_for_student = models.ForeignKey(
+        Student,
+        on_delete=models.SET_NULL,
+        related_name="student_invoices",
+        null=True,
+        blank=True,)
+    invoice_number = models.PositiveIntegerField()
+    invoice_series = models.CharField(max_length=10)

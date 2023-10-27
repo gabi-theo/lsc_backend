@@ -8,3 +8,4 @@ django-cors-headers==4.3.0
 redis==5.0.1
 openpyxl==3.1.2
 unidecodecode==1.3.7
+django-encrypted-field==1.0.5
