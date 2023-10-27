@@ -15,6 +15,7 @@ def create_session(sender, instance, created, **kwargs):
         sessions_assigned = 0
         last_session_date_tried = instance.first_day_of_session
 
+        # used for string -> int and int -> string conversions
         weekdays = ("luni", "marti", "miercuri", "joi",
                     "vineri", "sambata", "duminica")
 
@@ -23,16 +24,17 @@ def create_session(sender, instance, created, **kwargs):
             last_session_date_tried += timedelta(days=(weekdays.index(instance.day) -
                                                        last_session_date_tried.weekday()) % 7)
 
-        time_off_periods = TimeOff.objects.all()
+        # query database once, then use the query to perform checks
+        time_off_periods = list(TimeOff.objects.all())
 
         # do not assign more sessions than specified by the schedule
         while sessions_assigned < instance.total_sessions:
 
             # check that the session doesn't start when it's time off
-            time_off = time_off_periods.filter(
-                start_day__lt=last_session_date_tried, end_day__gt=last_session_date_tried)
+            time_off = [time_off_period for time_off_period in time_off_periods if time_off_period.start_day <
+                        last_session_date_tried and time_off_period.end_day > last_session_date_tried]
 
-            if not time_off.exists():
+            if not time_off:
 
                 # don't assign sessions past the last day of the course schedule
                 if last_session_date_tried > instance.last_day_of_session:
