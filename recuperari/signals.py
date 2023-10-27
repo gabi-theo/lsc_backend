@@ -12,45 +12,27 @@ def create_session(sender, instance, created, **kwargs):
 
     if created:
         # manually keep track of assigned sessions and the last assigned session since we might need to push some back
-        first_day = instance.first_day_of_session
         sessions_assigned = 0
-        last_session_date_tried = first_day
+        last_session_date_tried = instance.first_day_of_session
 
-        # convert session day name to datetime weekday
-        str_to_weekday = {
-            "luni": 0,
-            "marti": 1,
-            "miercuri": 2,
-            "joi": 3,
-            "vineri": 4,
-            "sambata": 5,
-            "duminica": 6
-        }
-
-        # convert datetime weekday to session day name
-        weekday_to_str = {
-            0: "luni",
-            1: "marti",
-            2: "miercuri",
-            3: "joi",
-            4: "vineri",
-            5: "sambata",
-            6: "duminica"
-        }
+        weekdays = ("luni", "marti", "miercuri", "joi",
+                    "vineri", "sambata", "duminica")
 
         # ensure we assign the session to the correct day
-        if weekday_to_str[last_session_date_tried.weekday()] != instance.day:
-            last_session_date_tried += timedelta(days=(str_to_weekday[instance.day] -
+        if weekdays[last_session_date_tried.weekday()] != instance.day:
+            last_session_date_tried += timedelta(days=(weekdays.index(instance.day) -
                                                        last_session_date_tried.weekday()) % 7)
+
+        time_off_periods = TimeOff.objects.all()
 
         # do not assign more sessions than specified by the schedule
         while sessions_assigned < instance.total_sessions:
 
             # check that the session doesn't start when it's time off
-            time_off = TimeOff.objects.filter(
+            time_off = time_off_periods.filter(
                 start_day__lt=last_session_date_tried, end_day__gt=last_session_date_tried)
 
-            if not time_off:
+            if not time_off.exists():
 
                 # don't assign sessions past the last day of the course schedule
                 if last_session_date_tried > instance.last_day_of_session:
