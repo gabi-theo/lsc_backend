@@ -98,6 +98,14 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
+            name='TimeOff',
+            fields=[
+                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ('start_day', models.DateField()),
+                ('end_day', models.DateField()),
+            ],
+        ),
+        migrations.CreateModel(
             name='Trainer',
             fields=[
                 ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),

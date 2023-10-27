@@ -9,17 +9,21 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from lsc_recuperari import settings
+
 from .authentication import CookieJWTAuthentication
 from .models import Course, CourseSchedule, School, Student, Trainer, User
 from .permissions import IsCoordinator, IsStudent, IsTrainer
 from .serializers import (CourseScheduleSerializer, CourseSerializer,
                           ImportSerializer, MakeUpSerializer,
                           ResetPasswordSerializer,
-                          SchoolSetupSerializer, SessionDescriptionSerializer,
+                          SessionDescriptionSerializer,
                           SessionListSerializer,
-                          SessionSerializer, SignInSerializer,
+                          SessionSerializer,
                           StudentCreateUpdateSerializer,
                           StudentsEmailSerializer,
+                          SchoolSetupSerializer,
+                          SignInSerializer,
                           TrainerCreateUpdateSerializer,
                           TrainerScheduleSerializer,
                           StudentCourseScheduleSerializer)
@@ -32,7 +36,6 @@ from .services.trainer import TrainerService
 from .services.users import UserService
 from .utils import (check_excel_format_in_request_data,
                     format_whised_make_up_times)
-from lsc_recuperari import settings
 
 
 class CoursesList(generics.ListAPIView):
