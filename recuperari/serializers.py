@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from .models import (Course, CourseDescription, CourseSchedule, MakeUp, School,
                      Session, SessionsDescription, Student, Trainer,
-                     TrainerSchedule, User)
+                     TrainerSchedule, User, StudentCourseSchedule)
 from .services.trainer import TrainerService
 from .services.students import StudentService
 
@@ -52,6 +52,25 @@ class SessionSerializer(serializers.ModelSerializer):
                   'session_no', 'absent_participants', 'made_up', 'course_session']
 
 
+class SessionListSerializer(serializers.ModelSerializer):
+    time = serializers.SerializerMethodField(read_only=True)
+    session_trainer = serializers.CharField(source="session_trainer.name", read_only=True)
+    course_session = serializers.CharField(source="course_session.course.course_type", read_only=True)
+
+    class Meta:
+        model = Session
+        fields = [
+            "course_session",
+            "session_no",
+            "session_trainer",
+            "date",
+            "time",
+        ]
+
+    def get_time(self, obj):
+        return obj.course_session.time
+
+
 class TrainerScheduleSerializer(serializers.ModelSerializer):
     class Meta:
         model = TrainerSchedule
@@ -59,6 +78,8 @@ class TrainerScheduleSerializer(serializers.ModelSerializer):
 
 
 class MakeUpSerializer(serializers.ModelSerializer):
+    make_up_for_session = SessionListSerializer()
+
     class Meta:
         model = MakeUp
         fields = '__all__'
@@ -110,7 +131,7 @@ class SignInSerializer(serializers.ModelSerializer):
         if not user.is_active:
             raise serializers.ValidationError(
                 "This user has been deactivated.")
-
+        data.update({"is_reset_password_needed": user.is_reset_password_needed})
         return data
 
 
@@ -209,7 +230,7 @@ class ResetPasswordSerializer(serializers.Serializer):
 class StudentsEmailSerializer(serializers.Serializer):
     groups = serializers.CharField()
     subject = serializers.CharField()
-    message = serializers.CharField()
+    message = serializers.CharField(style={'base_template': 'textarea.html'})
     send_mail = serializers.BooleanField(default=True)
     send_whatsapp = serializers.BooleanField(default=False)
 
@@ -221,3 +242,11 @@ class StudentsEmailSerializer(serializers.Serializer):
             "send_mail",
             "send_whatsapp",
         ]
+
+
+class StudentCourseScheduleSerializer(serializers.ModelSerializer):
+    course_schedule = serializers.CharField(source="course_schedule.group_name")
+    student = serializers.CharField(source="student.participant_name")
+    class Meta:
+        model = StudentCourseSchedule
+        fields = '__all__'
