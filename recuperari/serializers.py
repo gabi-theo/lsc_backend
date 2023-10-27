@@ -131,7 +131,7 @@ class SignInSerializer(serializers.ModelSerializer):
         if not user.is_active:
             raise serializers.ValidationError(
                 "This user has been deactivated.")
-
+        data.update({"is_reset_password_needed": user.is_reset_password_needed})
         return data
 
 
