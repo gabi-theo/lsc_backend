@@ -8,6 +8,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django_filters.rest_framework import DjangoFilterBackend
 
 from lsc_recuperari import settings
 
@@ -46,11 +47,11 @@ class CoursesList(generics.ListAPIView):
         return school.school_courses.all()
 
 
-class SessionList(generics.ListAPIView):
+class SessionInfoList(generics.RetrieveAPIView, generics.GenericAPIView):
     serializer_class = SessionSerializer
 
     def get_queryset(self):
-        return SessionService.get_session_by_course_schedule_id(self.kwargs['course_schedule_id'])
+        return SessionService.get_session_by_id(self.kwargs['pk'])
 
 
 class SessionDescriptionList(generics.ListAPIView):
@@ -60,13 +61,27 @@ class SessionDescriptionList(generics.ListAPIView):
         return SessionService.get_session_description_by_course_id(self.kwargs['course_id'])
 
 
-class SessionsAndMakeUpsListView(generics.ListAPIView):
-    # TODO: implement filters for dates. Default should be today
+class SessionsListView(generics.ListAPIView):
     serializer_class = SessionListSerializer
-    permission_classes = [IsAuthenticated, IsCoordinator, IsTrainer]
+    permission_classes = [IsAuthenticated, IsCoordinator | IsTrainer]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['date']
 
     def get_queryset(self):
-        return SessionService.get_sessions_by_user_school(self.request.user)
+        print(self.request.user)
+        return SessionService.get_sessions_by_user_school(
+            self.request.user)
+
+
+class MakeUpsListView(generics.ListAPIView):
+    serializer_class = MakeUpSerializer
+    permission_classes = [IsAuthenticated, IsCoordinator | IsTrainer]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['make_up_on']
+
+    def get_queryset(self):
+        return MakeUpService.get_makeups_by_user_school(
+            self.request.user)
 
 
 class TrainerScheduleView(
@@ -225,8 +240,10 @@ class UploadStudentCourseScheduleFirstDayView(APIView):
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class CourseScheduleDetailView(mixins.ListModelMixin, generics.GenericAPIView):
+class CourseScheduleDetailView(generics.ListAPIView, generics.GenericAPIView):
     serializer_class = CourseScheduleSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['id']
 
     def get_queryset(self):
         school = self.request.user.course_school.first()
@@ -347,3 +364,15 @@ class StudentFirstDayListView(generics.ListAPIView):
         return StudentService.get_students_first_day_of_course_by_school(
             school=self.request.user.course_school.first()
         )
+
+
+class StudentAbsentView(APIView):
+    def post(self, request, *args, **kwargs):
+        student = StudentService.get_student_by_id(kwargs['student_id'])
+        session = SessionService.get_session_by_id(kwargs["session_id"]).first()
+        if student not in session.absent_participants.all():
+            session.absent_participants.add(student)
+        else:
+            print("Student already absent. Will skip")
+        MakeUpService.create_empty_make_up_session_for_student(student, session)
+        return Response({"Student marked successfully as absent"}, status=status.HTTP_200_OK)

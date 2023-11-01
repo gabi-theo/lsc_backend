@@ -280,13 +280,17 @@ class MakeUp(models.Model):
         ("online_make_up", "Recuperare online"),
         ("sed", "La sediu cu alta grupa"),
         ("hbr", "Hibrid cu alta grupa"),
-        ("on_stie_make_up", "Recuperare la sediu"),
+        ("on_site_make_up", "Recuperare la sediu"),
     )
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     make_up_for_session = models.ForeignKey(Session, on_delete=models.CASCADE)
-    make_up_on = models.DateTimeField()
-    type = models.CharField(max_length=50, choices=MAKE_UP_SESSION_TYPE)
+    make_up_on = models.DateTimeField(null=True, blank=True)
+    type = models.CharField(
+        max_length=50,
+        choices=MAKE_UP_SESSION_TYPE,
+        null=True,
+        blank=True)
     duration_in_minutes = models.SmallIntegerField(default=30)
     make_up_trainer = models.ForeignKey(
         Trainer, on_delete=models.SET_NULL, null=True, blank=True)

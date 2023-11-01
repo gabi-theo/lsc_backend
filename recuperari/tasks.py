@@ -28,6 +28,4 @@ def send_students_email(emails, subject, message):
         message=message,
         subject=subject,
         sender="gabi.isaila@logiscool.com",
-        subject="Invitatie internal_lsc",
-        sender="gabi.isaila@logiscool.com"
     )

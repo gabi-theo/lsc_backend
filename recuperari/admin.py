@@ -3,7 +3,7 @@ from django.contrib import admin
 from .models import (Course, CourseDays, CourseDescription, CourseSchedule,
                      MakeUp, School, Session, SessionsDescription, Student,
                      StudentCourseSchedule, Trainer, TrainerSchedule, User,
-                     TimeOff)
+                     TimeOff, StudentMakeUp)
 
 # Register your models here.
 admin.site.register(School)
@@ -20,3 +20,4 @@ admin.site.register(MakeUp)
 admin.site.register(User)
 admin.site.register(StudentCourseSchedule)
 admin.site.register(TimeOff)
+admin.site.register(StudentMakeUp)

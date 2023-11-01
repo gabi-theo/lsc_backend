@@ -8,7 +8,7 @@ class SessionService:
     @staticmethod
     def get_session_by_id(session_id):
         try:
-            return Session.objects.get(pk=session_id)
+            return Session.objects.filter(pk=session_id)
         except Session.DoesNotExist:
             return Response({'detail': 'Session not found'}, status=status.HTTP_404_NOT_FOUND)
 
