@@ -6,6 +6,13 @@ from recuperari.models import Session, SessionsDescription
 
 class SessionService:
     @staticmethod
+    def get_session_description_by_id(session_description_id):
+        try:
+            return SessionsDescription.objects.get(pk=session_description_id)
+        except SessionsDescription.DoesNotExist:
+            return Response({'detail': 'Session description not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @staticmethod
     def get_session_by_id(session_id):
         try:
             return Session.objects.filter(pk=session_id)
