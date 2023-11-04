@@ -1,5 +1,6 @@
 from django.urls import path
 
+<<<<<<< HEAD
 from recuperari.views import (CourseScheduleDetailView, CoursesList,
                               MakeUpRequestNewView,
                               MakeUpSessionsAvailableView, ResetPasswordView,
@@ -11,13 +12,43 @@ from recuperari.views import (CourseScheduleDetailView, CoursesList,
                               TrainerScheduleView, UploadCourseExcelView,
                               UploadStudentCourseScheduleFirstDayView,
                               UploadStudentsExcelView)
+=======
+from recuperari.views import (
+    CourseScheduleDetailView,
+    CoursesList,
+    MakeUpsListView,
+    MakeUpRequestNewView,
+    MakeUpSessionsAvailableView,
+    ResetPasswordView,
+    SchoolSetupView,
+    SendEmailToGroupsView,
+    SessionDescriptionList,
+    SessionInfoList,
+    SignInView,
+    StudentProfileView,
+    TrainerProfileView,
+    TrainerScheduleView,
+    UploadCourseExcelView,
+    UploadStudentsExcelView,
+    UploadStudentCourseScheduleFirstDayView,
+    StudentCreateView,
+    StudentFirstDayListView,
+    TrainerCreateView,
+    SessionsListView,
+    SignOutView,
+    StudentAbsentView,
+)
+>>>>>>> 2ea569c5b2b5463ff52da90ad2ba9d1b4202075b
 
 urlpatterns = [
     path('courses/', CoursesList.as_view(), name='courses-list'),
     path(
-        'sessions/<uuid:course_schedule_id>/',
-        SessionList.as_view(),
+        'course_sessions/<uuid:pk>/',
+        SessionInfoList.as_view(),
         name='session_list'
+    ),
+    path(
+        'sessions/', SessionsListView.as_view(),
     ),
     path(
         'session/description/<uuid:course_id>/',
@@ -30,6 +61,10 @@ urlpatterns = [
         name='trainer_schedule',
     ),
     path(
+        "make_ups/",
+        MakeUpsListView.as_view(),
+    ),
+    path(
         "get_available_make_ups/",
         MakeUpSessionsAvailableView.as_view(),
         name="get_make_ups_for_session",
@@ -38,6 +73,10 @@ urlpatterns = [
         "request_make_up/",
         MakeUpRequestNewView.as_view(),
         name="request_make_up",
+    ),
+    path(
+        "student_absent/<uuid:student_id>/<uuid:session_id>/",
+        StudentAbsentView.as_view(),
     ),
     path(
         "course_excel_upload/",

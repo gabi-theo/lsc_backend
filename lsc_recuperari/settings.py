@@ -42,13 +42,15 @@ INSTALLED_APPS = [
     'core',
     'rest_framework',
     'corsheaders',
-    'django_celery_beat',
-    'django_celery_results',
+    'django_filters',
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000', 'http://localhost:5500', 'http://127.0.0.1:5500'
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
 ]
+
+CORS_ALLOW_CREDENTIALS = True
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -63,12 +65,13 @@ MIDDLEWARE = [
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "recuperari.authentication.CookieJWTAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "recuperari.authentication.CookieJWTAuthentication",
     ],
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
 }
 
 AUTH_USER_MODEL = 'recuperari.User'
@@ -104,7 +107,6 @@ SIMPLE_JWT = {
     "SIGNING_KEY": SECRET_KEY,
     "VERIFYING_KEY": None,
     "AUDIENCE": None,
-    "ISSUER": "Sympatic, inc.",
     "AUTH_HEADER_TYPES": ("Cookie", "Bearer"),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",

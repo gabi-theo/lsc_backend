@@ -43,14 +43,35 @@ class SessionDescriptionSerializer(serializers.ModelSerializer):
                   'max_session_no_description', 'description', 'created_at', 'updated_at']
 
 
+class StudentCourseScheduleSerializer(serializers.ModelSerializer):
+    course_schedule = serializers.CharField(source="course_schedule.group_name")
+    student = serializers.CharField(source="student.participant_name")
+    class Meta:
+        model = StudentCourseSchedule
+        fields = '__all__'
+
+
 class SessionSerializer(serializers.ModelSerializer):
-    course_session = CourseScheduleSerializer()
+    course_session_id = serializers.CharField(source="course_session.id")
+    course_session = serializers.CharField(source="course_session.group_name")
 
     class Meta:
         model = Session
-        fields = ['id', 'course_session', 'session_passed', 'date',
-                  'session_no', 'absent_participants', 'made_up', 'course_session']
+        fields = ['id', 'course_session_id', 'course_session', 'session_passed', 'date',
+                  'session_no', 'absent_participants', 'course_session']
 
+
+class MakeUpSerializer(serializers.ModelSerializer):
+    make_up_for_session = serializers.CharField(source="make_up_for_session.course_session.course.course_type")
+    make_up_for_session_number = serializers.CharField(source="make_up_for_session.session_no")
+    make_up_time = serializers.SerializerMethodField(read_only=True)
+    class Meta:
+        model = MakeUp
+        fields = '__all__'
+
+    def get_make_up_time(self, obj):
+        print(f"{obj.make_up_on.hour}:{obj.make_up_on.minute}")
+        return f"{obj.make_up_on.hour}:{obj.make_up_on.minute}"
 
 class SessionListSerializer(serializers.ModelSerializer):
     time = serializers.SerializerMethodField(read_only=True)
@@ -62,6 +83,7 @@ class SessionListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Session
         fields = [
+            "id",
             "course_session",
             "session_no",
             "session_trainer",
@@ -79,19 +101,18 @@ class TrainerScheduleSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class MakeUpSerializer(serializers.ModelSerializer):
-    make_up_for_session = SessionListSerializer()
-
-    class Meta:
-        model = MakeUp
-        fields = '__all__'
-
-
 class ImportSerializer(serializers.Serializer):
     file = serializers.FileField()
 
 
+class StudentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Student
+        fields = "__all__"
+
+
 class CourseScheduleSerializer(serializers.ModelSerializer):
+    students = StudentSerializer(read_only=True, many=True)
     class Meta:
         model = CourseSchedule
         fields = '__all__'
@@ -245,6 +266,7 @@ class StudentsEmailSerializer(serializers.Serializer):
             "send_mail",
             "send_whatsapp",
         ]
+<<<<<<< HEAD
 
 
 class StudentCourseScheduleSerializer(serializers.ModelSerializer):
@@ -267,3 +289,5 @@ class CourseDescriptionSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+=======
+>>>>>>> 2ea569c5b2b5463ff52da90ad2ba9d1b4202075b
