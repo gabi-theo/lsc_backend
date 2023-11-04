@@ -1,11 +1,20 @@
 import pandas as pd
+from rest_framework import status
+from rest_framework.response import Response
 from unidecode import unidecode
 
-from recuperari.models import Course, CourseSchedule
+from recuperari.models import Course, CourseDescription, CourseSchedule
 from recuperari.utils import map_to_bool
 
 
 class CourseService:
+    @staticmethod
+    def get_course_description_by_id(course_description_id):
+        try:
+            return CourseDescription.objects.get(pk=course_description_id)
+        except CourseDescription.DoesNotExist:
+            return Response({'detail': 'Course description not found'}, status=status.HTTP_404_NOT_FOUND)
+
     @staticmethod
     def get_course_schedule_by_group_name_day_and_time(
         group_name,
@@ -76,7 +85,8 @@ class CourseService:
             course_schedule_pks)
         students_list = []
         for course_schedule in course_schedules:
-            students_for_schedule = course_schedule.students.filter(student_active=True)
+            students_for_schedule = course_schedule.students.filter(
+                student_active=True)
             students_list.extend(students_for_schedule)
         return students_list
 

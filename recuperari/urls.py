@@ -1,27 +1,16 @@
 from django.urls import path
 
-from recuperari.views import (
-    CourseScheduleDetailView,
-    CoursesList,
-    MakeUpRequestNewView,
-    MakeUpSessionsAvailableView,
-    ResetPasswordView,
-    SchoolSetupView,
-    SendEmailToGroupsView,
-    SessionDescriptionList,
-    SessionList,
-    SignInView,
-    StudentProfileView,
-    TrainerProfileView,
-    TrainerScheduleView,
-    UploadCourseExcelView,
-    UploadStudentsExcelView,
-    UploadStudentCourseScheduleFirstDayView,
-    StudentCreateView,
-    StudentFirstDayListView,
-    TrainerCreateView,
-    SignOutView,
-)
+from recuperari.views import (CourseScheduleDetailView, CoursesList,
+                              MakeUpRequestNewView,
+                              MakeUpSessionsAvailableView, ResetPasswordView,
+                              SchoolSetupView, SendEmailToGroupsView,
+                              SessionDescriptionList, SessionList, SignInView,
+                              SignOutView, StudentCreateView,
+                              StudentFirstDayListView, StudentProfileView,
+                              TrainerCreateView, TrainerProfileView,
+                              TrainerScheduleView, UploadCourseExcelView,
+                              UploadStudentCourseScheduleFirstDayView,
+                              UploadStudentsExcelView)
 
 urlpatterns = [
     path('courses/', CoursesList.as_view(), name='courses-list'),
@@ -112,7 +101,11 @@ urlpatterns = [
         SendEmailToGroupsView.as_view(),
     ),
     path(
-        'student-course-first-day/',
+        "student-course-first-day/",
         StudentFirstDayListView.as_view(),
-        name='student-course-first-day-list'),
+        name="student-course-first-day-list"),
+    path(
+        "session-description-create/",
+        StudentFirstDayListView.as_view(),
+        name="student-course-first-day-list"),
 ]

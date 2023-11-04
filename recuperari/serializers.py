@@ -3,10 +3,10 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 from .models import (Course, CourseDescription, CourseSchedule, MakeUp, School,
-                     Session, SessionsDescription, Student, Trainer,
-                     TrainerSchedule, User, StudentCourseSchedule)
-from .services.trainer import TrainerService
+                     Session, SessionsDescription, Student,
+                     StudentCourseSchedule, Trainer, TrainerSchedule, User)
 from .services.students import StudentService
+from .services.trainer import TrainerService
 
 
 class CourseDescriptionSerializer(serializers.ModelSerializer):
@@ -54,8 +54,10 @@ class SessionSerializer(serializers.ModelSerializer):
 
 class SessionListSerializer(serializers.ModelSerializer):
     time = serializers.SerializerMethodField(read_only=True)
-    session_trainer = serializers.CharField(source="session_trainer.name", read_only=True)
-    course_session = serializers.CharField(source="course_session.course.course_type", read_only=True)
+    session_trainer = serializers.CharField(
+        source="session_trainer.name", read_only=True)
+    course_session = serializers.CharField(
+        source="course_session.course.course_type", read_only=True)
 
     class Meta:
         model = Session
@@ -131,7 +133,8 @@ class SignInSerializer(serializers.ModelSerializer):
         if not user.is_active:
             raise serializers.ValidationError(
                 "This user has been deactivated.")
-        data.update({"is_reset_password_needed": user.is_reset_password_needed})
+        data.update(
+            {"is_reset_password_needed": user.is_reset_password_needed})
         return data
 
 
@@ -245,8 +248,22 @@ class StudentsEmailSerializer(serializers.Serializer):
 
 
 class StudentCourseScheduleSerializer(serializers.ModelSerializer):
-    course_schedule = serializers.CharField(source="course_schedule.group_name")
+    course_schedule = serializers.CharField(
+        source="course_schedule.group_name")
     student = serializers.CharField(source="student.participant_name")
+
     class Meta:
         model = StudentCourseSchedule
         fields = '__all__'
+
+
+class CourseDescriptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CourseDescription
+        fields = [
+            "course",
+            "short_description",
+            "long_description",
+            "created_at",
+            "updated_at",
+        ]
