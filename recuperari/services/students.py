@@ -1,9 +1,9 @@
 import pandas as pd
-from datetime import datetime
-
-from recuperari.models import Student, StudentCourseSchedule, User
-from recuperari.tasks import send_students_email
+from unidecode import unidecode
+from recuperari.models import Student, StudentCourseSchedule, User, Parent
+from recuperari.tasks import send_students_email, send_students_whatsapp
 from .course import CourseService
+from .whatsapp import WhatsappService
 
 
 class StudentService:
@@ -16,17 +16,30 @@ class StudentService:
         df = pd.read_excel(excel_file, skiprows=[0])
         # Loop through the rows and create CourseSchedule objects
         for _, row in df.iterrows():
-            student, _ = Student.objects.get_or_create(
+            if isinstance(row["companion_phones"],float):
+                row["companion_phones"] = "Missing"
+            if isinstance(row["companion_fullName"],float):
+                row["companion_fullName"] = "Missing"
+            if isinstance(row["companion_emails"],float):
+                row["companion_emails"] = "Missing"
+            parent, _ = Parent.objects.get_or_create(
                 school=school,
-                participant_name=row["participant_fullName"],
-                participant_parent_name=row["companion_fullName"],
-                parent_phone_number=row["companion_phones"],
-                parent_email=row["companion_emails"],
+                first_name=row["companion_fullName"].split(" ")[0],
+                last_name=" ".join(row["companion_fullName"].split(" ")[1:]),
+                phone_number1=row["companion_phones"].split(", ")[0],
+                phone_number2=" ".join(row["companion_phones"].split(", ")[1:]),
+                email1=row["companion_emails"].split(", ")[0],
+                email2=" ".join(row["companion_emails"].split(", ")[1:]),
+            )
+            student, _ = Student.objects.get_or_create(
+                parent=parent,
+                first_name=row["participant_fullName"].split(" ")[0],
+                last_name=" ".join(row["participant_fullName"].split(" ")[1:]),
             )
             CourseService.add_student_to_course_schedule_by_group_name_day_and_time(
                 student=student,
                 group_name=row["group_name"],
-                day=row['schedule_times'].split(" ")[0],
+                day=unidecode(row['schedule_times'].split(" ")[0]),
                 time=row['schedule_times'].split(" ")[1],
             )
 
@@ -77,25 +90,41 @@ class StudentService:
             role="trainer",
         )
 
-    @staticmethod
-    def send_emails_to_students_in_groups(groups:str, subject:str, message:str):
+    @classmethod
+    def send_emails_to_students_in_groups(cls, groups:str, subject:str, message:str):
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("SENDING MAILS TO:")
         groups_pks = groups.split(",")
+        print(groups_pks)
         student_emails = []
         if len(groups_pks) == 1 and groups_pks[0] == "all":
-            student_emails = StudentService.get_emails_from_all_active_students()
+            student_emails = cls.get_emails_from_all_active_students()
         else:
             student_emails = CourseService.get_emails_of_students_from_course_schedule_by_schedule_pks(
                         groups_pks)
-
         send_students_email.delay(
             student_emails,
-            message,
             subject,
+            message,
         )
 
     @classmethod
-    def send_whatsapp_to_students_in_groups(cls, groups:str, subject:str, message:str):
-        pass
+    def send_whatsapp_to_students_in_groups(cls, groups:str, message:str):
+        groups_pks = groups.split(",")
+        student_phones = []
+        if len(groups_pks) == 1 and groups_pks[0] == "all":
+            student_phones = cls.get_phone_numbers_from_all_active_students()
+        else:
+            student_phones = CourseService.get_phones_of_students_from_course_schedule_by_schedule_pks(
+                        groups_pks)
+        print(student_phones)
+        for phone in student_phones:
+            for number in phone.split(","):
+                try:
+                    # WhatsappService.send_whatsapp_message(recipient=phone, message=message)
+                    send_students_whatsapp.delay(recipient=number, message=message)
+                except Exception as e:
+                    print(f"Couldn`t send message to {number}. Original error: {e}")
 
     @staticmethod
     def get_emails_from_all_active_students():
@@ -103,6 +132,13 @@ class StudentService:
             Student.objects.filter(
                 student_active=True
             ).values_list('parent_email', flat=True).distinct())
+    
+    @staticmethod
+    def get_phone_numbers_from_all_active_students():
+        return list(
+            Student.objects.filter(
+                student_active=True
+            ).values_list('parent_phone_number', flat=True).distinct())
 
     @staticmethod
     def get_students_first_day_of_course_by_school(school):

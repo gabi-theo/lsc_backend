@@ -1,10 +1,12 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
+from datetime import datetime, timedelta
+from django.db.models import Max
 
-from .models import (Course, CourseDescription, CourseSchedule, MakeUp, School,
-                     Session, SessionsDescription, Student, Trainer,
-                     TrainerSchedule, User, StudentCourseSchedule)
+from .models import (AbsentStudent, Course, CourseDescription, CourseSchedule, MakeUp, School,
+                     Session, SessionsDescription, Student, Trainer, TrainerFromSchool,
+                     TrainerSchedule, User, StudentCourseSchedule, DaysOff, Room)
 from .services.trainer import TrainerService
 from .services.students import StudentService
 
@@ -54,11 +56,23 @@ class StudentCourseScheduleSerializer(serializers.ModelSerializer):
 class SessionSerializer(serializers.ModelSerializer):
     course_session_id = serializers.CharField(source="course_session.id")
     course_session = serializers.CharField(source="course_session.group_name")
+    no_of_students = serializers.SerializerMethodField(read_only=True)
+    no_of_absences = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Session
         fields = ['id', 'course_session_id', 'course_session', 'session_passed', 'date',
-                  'session_no', 'absent_participants', 'course_session']
+                  'session_no', 'course_session', 'no_of_absences', 'no_of_students']
+        
+    def validate(self, attrs):
+        print("validating")
+        return super().validate(attrs)
+
+    def get_no_of_students(self, obj):
+        return obj.course_session.students.all().count()
+    
+    def get_no_of_absences(self, obj):
+        return obj.course_session_absence.all().count()
 
 
 class MakeUpSerializer(serializers.ModelSerializer):
@@ -70,7 +84,6 @@ class MakeUpSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_make_up_time(self, obj):
-        print(f"{obj.make_up_on.hour}:{obj.make_up_on.minute}")
         return f"{obj.make_up_on.hour}:{obj.make_up_on.minute}"
 
 class SessionListSerializer(serializers.ModelSerializer):
@@ -111,9 +124,53 @@ class StudentSerializer(serializers.ModelSerializer):
 
 class CourseScheduleSerializer(serializers.ModelSerializer):
     students = StudentSerializer(read_only=True, many=True)
+    course = serializers.CharField(read_only=True, source="course.course_type")
+    default_trainer_first_name = serializers.CharField(read_only=True, source="default_trainer.first_name")
+    default_trainer_last_name = serializers.CharField(read_only=True, source="default_trainer.last_name")
+    current_session = serializers.SerializerMethodField()
+
     class Meta:
         model = CourseSchedule
-        fields = '__all__'
+        fields = [
+            "available_places_for_make_up_for_current_school",
+            "available_places_for_make_up_for_other_schools",
+            "can_be_used_as_online_make_up_for_other_schools",
+            "classroom",
+            "course",
+            "course_type",
+            "day",
+            "default_trainer_first_name",
+            "default_trainer_last_name",
+            "first_day_of_session",
+            "group_name",
+            "id",
+            "last_day_of_session",
+            "online_link",
+            "school",
+            "students",
+            "time",
+            "total_sessions",
+            "current_session",
+        ]
+
+    def get_current_session(self, obj):
+        today = datetime.now().date()
+        current_week_sessions = obj.sessions.filter(date__week=today.isocalendar()[1])
+
+        if current_week_sessions.exists():
+            current_session = current_week_sessions.first()
+        else:
+            # If no session in the current week, get the latest session
+            latest_session = obj.sessions.aggregate(Max('date'))['date__max']
+            if latest_session:
+                current_session = obj.sessions.filter(date=latest_session).first()
+            else:
+                current_session = None
+
+        if current_session:
+            return current_session.session_no
+        else:
+            return None
 
 
 class SignInSerializer(serializers.ModelSerializer):
@@ -124,9 +181,9 @@ class SignInSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
+            "username",
             "password",
             "token",
-            "username",
         ]
 
     def validate(self, attrs: dict) -> dict:
@@ -152,13 +209,14 @@ class SignInSerializer(serializers.ModelSerializer):
         if not user.is_active:
             raise serializers.ValidationError(
                 "This user has been deactivated.")
+
         data.update({"is_reset_password_needed": user.is_reset_password_needed})
         return data
 
 
 class SchoolSetupSerializer(serializers.ModelSerializer):
 
-    owner_name = serializers.CharField(read_only=True)
+    user = serializers.CharField(read_only=True)
 
     class Meta:
         model = School
@@ -166,8 +224,7 @@ class SchoolSetupSerializer(serializers.ModelSerializer):
             "name",
             "phone_contact",
             "email_contact",
-            "room_count",
-            "owner_name",
+            "user",
         ]
 
 
@@ -213,17 +270,47 @@ class TrainerCreateUpdateSerializer(serializers.ModelSerializer):
         model = Trainer
         fields = [
             "id",
-            "name",
+            "first_name",
+            "last_name",
             "phone_contact",
             "email_contact",
         ]
 
     def create(self, validated_data):
         validated_data["user"] = TrainerService.create_user_for_trainer_and_send_emai(
-            username=self.validated_data["name"].replace(" ", ".").lower(),
+            username=f'{self.validated_data["first_name"]}.{self.validated_data["last_name"]}',
             trainer_email=self.validated_data["email_contact"]
         )
-        return super().create(validated_data)
+        trainer = Trainer.objects.create(
+            user = validated_data["user"],
+            first_name=self.validated_data["first_name"],
+            last_name=self.validated_data["last_name"],
+            phone_contact=self.validated_data["phone_contact"],
+            email_contact=self.validated_data["email_contact"],
+        )
+        TrainerFromSchool.objects.create(
+            trainer=trainer,
+            # TODO: fix this for multiple schools
+            school=self.context['request'].user.user_school.all().first(),
+        )
+        return trainer
+
+
+class TrainerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Trainer
+        fields = ['first_name', 'last_name', 'phone_contact', 'email_contact']
+
+class TrainerFromSchoolSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(source="trainer.first_name")
+    last_name = serializers.CharField(source="trainer.last_name")
+    phone_contact = serializers.CharField(source="trainer.phone_contact")
+    email_contact = serializers.CharField(source="trainer.email_contact")
+
+    class Meta:
+        model = TrainerFromSchool
+        fields = ['trainer', 'first_name', 'last_name', 'phone_contact', 'email_contact']
+
 
 
 class ResetPasswordSerializer(serializers.Serializer):
@@ -252,7 +339,7 @@ class StudentsEmailSerializer(serializers.Serializer):
     groups = serializers.CharField()
     subject = serializers.CharField()
     message = serializers.CharField(style={'base_template': 'textarea.html'})
-    send_mail = serializers.BooleanField(default=True)
+    send_mail = serializers.BooleanField(default=False)
     send_whatsapp = serializers.BooleanField(default=False)
 
     class Meta:
@@ -263,3 +350,36 @@ class StudentsEmailSerializer(serializers.Serializer):
             "send_mail",
             "send_whatsapp",
         ]
+
+
+class AbsencesSerializer(serializers.ModelSerializer):
+    absent_participant_first_name = serializers.CharField(source="absent_participant.first_name")
+    absent_participant_last_name = serializers.CharField(source="absent_participant.last_name")
+    absent_on_session = serializers.CharField(source="absent_on_session.course_session.group_name")
+    session_number = serializers.CharField(source="absent_on_session.session_no", read_only=True)
+
+    class Meta:
+        model = AbsentStudent
+        fields = [
+            "id",
+            "absent_participant_first_name",
+            "absent_participant_last_name",
+            "absent_on_session",
+            "is_absence_in_crm",
+            "is_absence_communicated_to_parent",
+            "has_make_up_scheduled",
+            "comment",
+            "session_number"
+        ]
+
+
+class DaysOffSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DaysOff
+        fields = ["first_day_off", "last_day_off", "day_off_info"]
+
+
+class RoomSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Room
+        fields = ['id', 'room_name', 'capacity']

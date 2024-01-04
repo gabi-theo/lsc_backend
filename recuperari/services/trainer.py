@@ -37,7 +37,6 @@ class TrainerService:
             is_reset_password_needed=True,
             role="trainer",
         )
-        print("Sending task")
         send_trainer_registration_email.delay(
             email=trainer_email,
             username=username,

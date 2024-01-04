@@ -96,7 +96,7 @@ class School(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="course_school",
+        related_name="user_school",
     )
     name = models.CharField(
         null=False,
@@ -105,13 +105,25 @@ class School(models.Model):
     )
     phone_contact = models.CharField(max_length=15)
     email_contact = models.EmailField()
-    room_count = models.PositiveSmallIntegerField(
-        null=False,
-        blank=False
-    )
 
     def __str__(self) -> str:
         return self.name
+
+
+class Room(models.Model):
+    room_name = models.CharField(max_length=10, null=False, blank=False, default="room name")
+    capacity = models.SmallIntegerField()
+    school = models.ForeignKey(School, on_delete=models.CASCADE)
+
+    def __str__(self) -> str:
+        return f"{self.school} - {self.room_name} - {self.capacity}"
+
+
+class DaysOff(models.Model):
+    first_day_off = models.DateField()
+    last_day_off = models.DateField()
+    day_off_info = models.CharField(max_length=50)
+    school = models.ForeignKey(School, on_delete=models.CASCADE)
 
 
 class CourseDays(models.Model):
@@ -129,13 +141,6 @@ class CourseDays(models.Model):
 
 class Course(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    school = models.ForeignKey(
-        School,
-        on_delete=models.CASCADE,
-        null=False,
-        blank=False,
-        related_name="school_courses",
-    )
     next_possible_course = models.ManyToManyField(
         'self',
         blank=True,
@@ -145,25 +150,33 @@ class Course(models.Model):
     course_type = models.CharField(max_length=50, null=False, blank=False)
 
     def __str__(self) -> str:
-        return self.course_type + " " + self.school.name
+        return self.course_type
 
 
 class Trainer(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, null=True)
-    name = models.CharField(max_length=50, unique=True)
+    first_name = models.CharField(max_length=50, unique=True)
+    last_name = models.CharField(max_length=50, unique=True)
     phone_contact = models.CharField(max_length=15)
     email_contact = models.EmailField()
 
     def __str__(self) -> str:
-        return self.name
+        return f"{self.first_name} {self.last_name}"
 
 
-class Student(models.Model):
+class TrainerFromSchool(models.Model):
+    school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True, related_name="school_trainers")
+    trainer = models.ForeignKey(Trainer, on_delete=models.CASCADE)
+
+    def __str__(self) -> str:
+        return f"{self.trainer.__str__()} - {self.school.name}"
+
+class Parent(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(
-        User, on_delete=models.CASCADE, null=True)
+        User, on_delete=models.SET_NULL, null=True, blank=True)
     school = models.ForeignKey(
         School,
         on_delete=models.CASCADE,
@@ -171,16 +184,30 @@ class Student(models.Model):
         blank=False,
         related_name="school_students",
     )
-    participant_name = models.CharField(max_length=50, null=False, blank=False)
-    participant_parent_name = models.CharField(
+    first_name = models.CharField(
         max_length=50, null=False, blank=False)
-    parent_phone_number = models.CharField(
-        max_length=20, null=False, blank=False)
-    parent_email = models.CharField(max_length=50, null=False, blank=False)
-    student_active = models.BooleanField(default=True)
+    last_name = models.CharField(
+        max_length=50, null=False, blank=False)
+    phone_number1 = models.CharField(
+        max_length=50, null=True, blank=True)
+    phone_number2 = models.CharField(
+        max_length=50, null=True, blank=True)
+    email1 = models.CharField(max_length=50, null=True, blank=True)
+    email2 = models.CharField(max_length=50, null=True, blank=True)
+    active_account = models.BooleanField(default=True)
 
     def __str__(self) -> str:
-        return self.participant_name
+        return f"{self.first_name} {self.last_name}"
+
+
+class Student(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    parent = models.ForeignKey(Parent, on_delete=models.CASCADE, related_name="children")
+    first_name = models.CharField(max_length=50, null=False, blank=False)
+    last_name = models.CharField(max_length=50, null=False, blank=False)
+
+    def __str__(self) -> str:
+        return f"{self.first_name} {self.last_name}"
 
 
 class CourseSchedule(models.Model):
@@ -203,6 +230,13 @@ class CourseSchedule(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     course = models.ForeignKey(
         Course, on_delete=models.CASCADE, related_name='course_schedules')
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+        related_name="school_courses",
+    )
     group_name = models.CharField(max_length=50, null=False, blank=False)
     total_sessions = models.SmallIntegerField()
     first_day_of_session = models.DateField(null=False, blank=False)
@@ -212,6 +246,7 @@ class CourseSchedule(models.Model):
         choices=DAYS,
     )
     time = models.TimeField(null=False)
+    classroom = models.ForeignKey(Room, models.SET_NULL, blank=True, null=True)
     default_trainer = models.ForeignKey(Trainer, on_delete=models.SET_NULL, null=True, blank=True)
     students = models.ManyToManyField(
         Student,
@@ -219,6 +254,10 @@ class CourseSchedule(models.Model):
         through='StudentCourseSchedule',
     )
     course_type = models.CharField(max_length=10, choices=TYPE)
+    online_link = models.CharField(max_length=500, null=True, blank=True)
+    can_be_used_as_online_make_up_for_other_schools = models.BooleanField(default=True)
+    available_places_for_make_up_for_other_schools = models.IntegerField(default=3)
+    available_places_for_make_up_for_current_school = models.IntegerField(default=3)
 
     def __str__(self) -> str:
         return self.group_name
@@ -233,21 +272,24 @@ class StudentCourseSchedule(models.Model):
         unique_together = ('course_schedule', 'student')
 
     def __str__(self) -> str:
-        return self.student.participant_name + " " + self.course_schedule.group_name
+        return self.student.__str__() + " " + self.course_schedule.group_name
 
 
-class TrainerSchedule(models.Model):
+class TrainerScheduleInterval(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     trainer = models.ForeignKey(Trainer, on_delete=models.CASCADE)
     available_from = models.DateField()
     available_to = models.DateField()
-    available_days = models.ManyToManyField(CourseDays)
+    school = models.ForeignKey(School, on_delete=models.CASCADE)
+
+
+class TrainerSchedule(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    trainer_interval = models.ForeignKey(TrainerScheduleInterval, on_delete=models.CASCADE, null=True, blank=True)
+    available_day = models.ForeignKey(CourseDays, on_delete=models.SET_NULL, null=True, blank=True)
     available_hour_from = models.TimeField()
     available_hour_to = models.TimeField()
-    available_for_make_up = models.BooleanField(default=True)
-    available_for_course = models.BooleanField(default=True)
     online_only = models.BooleanField(default=False)
-    school = models.ForeignKey(School, on_delete=models.CASCADE)
 
 
 class Session(models.Model):
@@ -255,6 +297,7 @@ class Session(models.Model):
     course_session = models.ForeignKey(
         CourseSchedule,
         on_delete=models.CASCADE,
+        related_name="sessions"
     )
     session_trainer = models.ForeignKey(
         Trainer,
@@ -266,43 +309,72 @@ class Session(models.Model):
     session_passed = models.BooleanField(default=False)
     date = models.DateField()
     session_no = models.SmallIntegerField()
-    absent_participants = models.ManyToManyField(Student)
-    can_have_online_make_up = models.BooleanField(default=True)
-    can_have_on_site_make_up = models.BooleanField(default=True)
 
     def __str__(self) -> str:
         return f"{self.course_session} - {self.session_no}"
 
 
 class MakeUp(models.Model):
-    MAKE_UP_SESSION_TYPE = (
-        ("onl", "Online cu alta grupa"),
-        ("online_make_up", "Recuperare online"),
-        ("sed", "La sediu cu alta grupa"),
-        ("hbr", "Hibrid cu alta grupa"),
-        ("on_site_make_up", "Recuperare la sediu"),
+    TYPE = (
+        ("onl", "Online"),
+        ("hbr", "Hibrid"),
+        ("sed", "Sediu"),
     )
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    make_up_for_session = models.ForeignKey(Session, on_delete=models.CASCADE)
-    make_up_on = models.DateTimeField(null=True, blank=True)
+    date_time = models.DateTimeField(null=True, blank=True)
+    online_link = models.CharField(max_length=500)
     type = models.CharField(
         max_length=50,
-        choices=MAKE_UP_SESSION_TYPE,
+        choices=TYPE,
         null=True,
         blank=True)
     duration_in_minutes = models.SmallIntegerField(default=30)
-    make_up_trainer = models.ForeignKey(
+    trainer = models.ForeignKey(
         Trainer, on_delete=models.SET_NULL, null=True, blank=True)
     make_up_approved = models.BooleanField(default=False)
     make_up_completed = models.BooleanField(default=False)
-    students = models.ManyToManyField(Student, through="StudentMakeUp")
+    can_be_used_as_online_make_up_for_other_schools = models.BooleanField(default=True)
+    available_places_for_make_up_for_other_schools = models.IntegerField(default=3)
+    available_places_for_make_up_for_current_school = models.IntegerField(default=3)
+    session = models.ForeignKey(Session, on_delete=models.SET_NULL, null=True, blank=True)
 
 
-class StudentMakeUp(models.Model):
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="student_make_ups")
-    make_up_session = models.ForeignKey(MakeUp, on_delete=models.CASCADE, related_name="session_make_ups")
-    made_up = models.BooleanField(default=False)
+class AbsentStudent(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    absent_participant = models.ForeignKey(
+        Student,
+        on_delete=models.CASCADE,
+        related_name="student_absences",
+        help_text="get all absences for student")
+    absent_on_session = models.ForeignKey(
+        Session,
+        on_delete=models.CASCADE,
+        related_name="session_absences",
+        help_text="get all absences for session")
+    is_absence_in_crm = models.BooleanField(default=False)
+    is_absence_communicated_to_parent = models.BooleanField(default=False)
+    is_absence_completed = models.BooleanField(
+        default=False,
+        help_text="if make up happened and student was not absent")
+    has_make_up_scheduled = models.BooleanField(default=False)
+    choosed_course_session_for_absence = models.ForeignKey(
+        Session,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="course_session_absence",
+        help_text="get absences setted up for session")
+    choosed_make_up_session_for_absence = models.ForeignKey(
+        MakeUp,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="make_up_absences",
+        help_text="get absences setted up for make up")
+    is_make_up_online = models.BooleanField(default=False)
+    is_make_up_on_site = models.BooleanField(default=False)
+    comment = models.TextField(max_length=500, null=True, blank=True)
 
 
 class CourseDescription(models.Model):
@@ -333,3 +405,22 @@ class TimeOff(models.Model):
 
     def __str__(self) -> str:
         return f"Vacanta: {self.start_day.isoformat()} - {self.end_day.isoformat()}"
+
+
+class SentWhatsappMessages(models.Model):
+    sent_on_time = models.TimeField(auto_now_add=True)
+    sent_on_date = models.DateField(auto_now_add=True)
+    sent_to_number = models.CharField(max_length=50)
+    sent_message = models.TextField(max_length=500)
+    has_errors = models.BooleanField(default=False)
+    error_message = models.TextField(null=True, blank=True)
+
+
+class SentEmailsMessages(models.Model):
+    sent_on_time = models.TimeField(auto_now_add=True)
+    sent_on_date = models.DateField(auto_now_add=True)
+    sent_to_mail = models.CharField(max_length=100)
+    sent_mail_subject = models.TextField(max_length=500)
+    sent_mail_body = models.TextField(max_length=500)
+    has_errors = models.BooleanField(default=False)
+    error_message = models.TextField(null=True, blank=True)

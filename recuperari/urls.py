@@ -1,14 +1,21 @@
 from django.urls import path
 
 from recuperari.views import (
+    CheckUserRedirectView,
+    CourseScheduleList,
     CourseScheduleDetailView,
     CoursesList,
-    MakeUpsListView,
+    CourseScheduleMatchingList,
+    AbsencesListView,
+    DaysOffListView,
+    MakeUpChooseView,
     MakeUpRequestNewView,
     MakeUpSessionsAvailableView,
     ResetPasswordView,
-    SchoolSetupView,
+    RoomListCreateView,
+    SchoolCreateView,
     SendEmailToGroupsView,
+    SessionCourseList,
     SessionDescriptionList,
     SessionInfoList,
     SignInView,
@@ -21,6 +28,7 @@ from recuperari.views import (
     StudentCreateView,
     StudentFirstDayListView,
     TrainerCreateView,
+    TrainerFromSchoolListView,
     SessionsListView,
     SignOutView,
     StudentAbsentView,
@@ -28,10 +36,15 @@ from recuperari.views import (
 
 urlpatterns = [
     path('courses/', CoursesList.as_view(), name='courses-list'),
+    path('course-schedule/', CourseScheduleList.as_view()),
     path(
         'course_sessions/<uuid:pk>/',
         SessionInfoList.as_view(),
         name='session_list'
+    ),
+    path(
+        'sessions_from_course/<uuid:pk>/',
+        SessionCourseList.as_view(),
     ),
     path(
         'sessions/', SessionsListView.as_view(),
@@ -47,8 +60,8 @@ urlpatterns = [
         name='trainer_schedule',
     ),
     path(
-        "make_ups/",
-        MakeUpsListView.as_view(),
+        "absences/",
+        AbsencesListView.as_view(),
     ),
     path(
         "get_available_make_ups/",
@@ -92,14 +105,18 @@ urlpatterns = [
         SignOutView.as_view(),
     ),
     path(
+        "check_user",
+        CheckUserRedirectView.as_view(),
+    ),
+    path('days-off', DaysOffListView.as_view(), name='days-off-list'),
+    path(
         "auth/reset_password/",
         ResetPasswordView.as_view(),
         name="reset_password",
     ),
     path(
-        "school-setup/",
-        SchoolSetupView.as_view(),
-        name="school-setup"
+        "school_create",
+        SchoolCreateView.as_view(),
     ),
     path(
         "trainer-profile/<uuid:pk>",
@@ -111,6 +128,8 @@ urlpatterns = [
         TrainerCreateView.as_view(),
         name="trainer-profile"
     ),
+    path('trainers-from-school', TrainerFromSchoolListView.as_view(),),
+
     path(
         "student-profile/<uuid:pk>",
         StudentProfileView.as_view(),
@@ -129,4 +148,10 @@ urlpatterns = [
         'student-course-first-day/',
         StudentFirstDayListView.as_view(),
         name='student-course-first-day-list'),
+    path(
+        "make-up-choose/<str:absence_id>/<str:session_option>/<str:make_up_option>/<str:send_email>",
+        MakeUpChooseView.as_view(),
+    ),
+    path('rooms', RoomListCreateView.as_view(), name='room-list-create'),
+    path('similar-course-schedules/<uuid:pk>/', CourseScheduleMatchingList.as_view()),
 ]

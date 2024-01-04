@@ -3,15 +3,13 @@ import os
 from celery import Celery
 from celery.schedules import crontab
 
-from lsc_recuperari import settings
-
 __all__ = ("app",)
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "lsc_recuperari.settings")
 
 app = Celery("core", include=["recuperari.tasks"])
 app.config_from_object("django.conf:settings", namespace="CELERY")
-app.conf.task_default_queue = settings.EMAILS_QUEUE
+app.conf.task_default_queue = "emails"
 app.conf.worker_hijack_root_logger = False
 # example of cronjobs:
 # app.conf.beat_schedule = {

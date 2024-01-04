@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 import secrets
 import string
+from django.db import models
+import json
 from django.conf import settings
 from rest_framework import status
 from rest_framework.response import Response
@@ -12,6 +14,11 @@ from rest_framework_simplejwt.exceptions import TokenError
 class LongLiveSlidingToken(SlidingToken):
     token_type = "sliding"
     lifetime = timedelta(seconds=settings.LONG_LIVE_SLIDING_TOKEN_LIFETIME_SEC)
+
+
+class CustomResponse(Response):
+    def status_text(self, custom_text):
+        return str(custom_text)
 
 
 def set_value_to_cookie(response, key, value, expires=settings.SESSION_COOKIE_AGE):
@@ -102,3 +109,19 @@ def validate_token_generic(
     exc.auth_header = f"{token_location} '{token_key}'"
 
     raise exc
+
+
+def create_serialized_response_from_object(object, fields):
+    serialized_data = {}
+    for field_name in fields:
+        # Handle related fields using double-underscore notation
+        current_value = object
+        for part in field_name.split('__'):
+            if isinstance(current_value, models.Model):
+                current_value = getattr(current_value, part, None)
+            else:
+                current_value = None
+                break
+
+        serialized_data[field_name] = current_value
+    return serialized_data

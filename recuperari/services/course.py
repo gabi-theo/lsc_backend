@@ -13,6 +13,9 @@ class CourseService:
         time,
     ):
         try:
+            print(group_name)
+            print(day)
+            print(time)
             return CourseSchedule.objects.get(
                 group_name=group_name,
                 day=day,
@@ -41,11 +44,12 @@ class CourseService:
     ):
         # Read the Excel file
         df = pd.read_excel(excel_file, skiprows=[0])
+        count_courses = 0
         # Loop through the rows and create CourseSchedule objects
         for _, row in df.iterrows():
             if row['totalParticipants'] > 0:
                 course, _ = Course.objects.get_or_create(
-                    school=school, course_type=row['courseType_name'])
+                    course_type=row['courseType_name'])
                 CourseSchedule.objects.create(
                     course=course,
                     group_name=row['name'],
@@ -54,8 +58,11 @@ class CourseService:
                     last_day_of_session=row['lastDay'],
                     day=unidecode(row['schedule_times'].split(" ")[0]),
                     time=row['schedule_times'].split(" ")[1],
-                    course_type="onl" if map_to_bool(row["online"]) else "sed"
+                    course_type="onl" if map_to_bool(row["online"]) else "sed",
+                    school=school,
                 )
+                count_courses += 1
+        return count_courses
 
     @classmethod
     def add_student_to_course_schedule_by_group_name_day_and_time(
@@ -85,3 +92,9 @@ class CourseService:
         all_students = cls.get_active_students_from_course_schedule_by_course_schedule_pks(
             course_schedule_pks)
         return list(set([stud.parent_email for stud in all_students]))
+
+    @classmethod
+    def get_phones_of_students_from_course_schedule_by_schedule_pks(cls, course_schedule_pks):
+        all_students = cls.get_active_students_from_course_schedule_by_course_schedule_pks(
+            course_schedule_pks)
+        return list(set([stud.parent_phone_number for stud in all_students]))

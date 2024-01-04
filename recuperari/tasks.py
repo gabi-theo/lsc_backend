@@ -1,6 +1,7 @@
 from celery import shared_task
 
 from .services.emails import EmailService
+from .services.whatsapp import WhatsappService
 
 
 @shared_task
@@ -27,5 +28,12 @@ def send_students_email(emails, subject, message):
         recipient_emails=emails,
         message=message,
         subject=subject,
-        sender="gabi.isaila@logiscool.com",
+       sender="Logiscool Bucrești Romană <hello.romana@logiscool.com>",
+    )
+
+@shared_task
+def send_students_whatsapp(recipient, message):
+    WhatsappService.send_whatsapp_message(
+        recipient=recipient,
+        message=message,
     )

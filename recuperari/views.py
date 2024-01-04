@@ -2,7 +2,6 @@ from itertools import chain
 
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, mixins, status
-from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
@@ -13,21 +12,30 @@ from django_filters.rest_framework import DjangoFilterBackend
 from lsc_recuperari import settings
 
 from .authentication import CookieJWTAuthentication
-from .models import Course, CourseSchedule, School, Student, Trainer, User
+from .models import Course, CourseSchedule, DaysOff, Room, School, Student, Trainer, User, TrainerFromSchool, Session
 from .permissions import IsCoordinator, IsStudent, IsTrainer
-from .serializers import (CourseScheduleSerializer, CourseSerializer,
-                          ImportSerializer, MakeUpSerializer,
-                          ResetPasswordSerializer,
-                          SessionDescriptionSerializer,
-                          SessionListSerializer,
-                          SessionSerializer,
-                          StudentCreateUpdateSerializer,
-                          StudentsEmailSerializer,
-                          SchoolSetupSerializer,
-                          SignInSerializer,
-                          TrainerCreateUpdateSerializer,
-                          TrainerScheduleSerializer,
-                          StudentCourseScheduleSerializer)
+from .serializers import (
+    AbsencesSerializer,
+    CourseScheduleSerializer,
+    CourseSerializer,
+    DaysOffSerializer,
+    ImportSerializer,
+    MakeUpSerializer,
+    ResetPasswordSerializer,
+    RoomSerializer,
+    SessionDescriptionSerializer,
+    SessionListSerializer,
+    SessionSerializer,
+    StudentCreateUpdateSerializer,
+    StudentsEmailSerializer,
+    SchoolSetupSerializer,
+    SignInSerializer,
+    TrainerFromSchoolSerializer,
+    TrainerCreateUpdateSerializer,
+    TrainerScheduleSerializer,
+    StudentCourseScheduleSerializer
+)
+from .services.absence import AbsenceService
 from .services.course import CourseService
 from .services.emails import EmailService
 from .services.makeup import MakeUpService
@@ -36,7 +44,7 @@ from .services.students import StudentService
 from .services.trainer import TrainerService
 from .services.users import UserService
 from .utils import (check_excel_format_in_request_data,
-                    format_whised_make_up_times)
+                    format_whised_make_up_times,)
 
 
 class CoursesList(generics.ListAPIView):
@@ -47,11 +55,56 @@ class CoursesList(generics.ListAPIView):
         return school.school_courses.all()
 
 
-class SessionInfoList(generics.RetrieveAPIView, generics.GenericAPIView):
+class CourseScheduleList(generics.ListAPIView):
+    serializer_class = CourseScheduleSerializer
+
+    def get_queryset(self):
+        school = self.request.user.user_school.first()
+        return CourseSchedule.objects.filter(school=school)
+
+
+class CourseScheduleMatchingList(generics.ListAPIView):
+    serializer_class = CourseScheduleSerializer
+
+    def get_queryset(self):
+        current_schedule_id = self.kwargs['pk']
+        user_school = self.request.user.user_school.all().first()
+        current_schedule = CourseSchedule.objects.get(id=current_schedule_id)
+        # Scenario 1: Same day, same time, same course
+        scenario_1 = CourseSchedule.objects.filter(
+            day=current_schedule.day,
+            time=current_schedule.time,
+            course=current_schedule.course,
+        ).exclude(id=current_schedule_id).exclude(school=user_school)
+        # Scenario 2: Same day, different time, same course
+        scenario_2 = CourseSchedule.objects.filter(
+            day=current_schedule.day,
+            course=current_schedule.course,
+        ).exclude(id=current_schedule_id).exclude(time=current_schedule.time).exclude(school=user_school)
+        # Scenario 3: Different day, different time, same course
+        scenario_3 = CourseSchedule.objects.filter(
+            course=current_schedule.course,
+        ).exclude(id=current_schedule_id).exclude(day=current_schedule.day).exclude(school=user_school)
+        # Combine scenarios and remove duplicates
+        combined_schedules = (scenario_1 | scenario_2 | scenario_3).distinct()
+        return combined_schedules
+
+
+class SessionCourseList(generics.ListAPIView):
     serializer_class = SessionSerializer
 
     def get_queryset(self):
-        return SessionService.get_session_by_id(self.kwargs['pk'])
+        return SessionService.get_session_by_course_schedule_id(self.kwargs['pk'])
+
+
+class SessionInfoList(generics.RetrieveAPIView, generics.GenericAPIView):
+    serializer_class = SessionSerializer
+    queryset = Session.objects.all()
+
+    def retrieve(self, request, *args, **kwargs):
+        session = SessionService.get_session_by_id(self.kwargs['pk']).first()
+        serializer = self.get_serializer(session)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class SessionDescriptionList(generics.ListAPIView):
@@ -63,25 +116,28 @@ class SessionDescriptionList(generics.ListAPIView):
 
 class SessionsListView(generics.ListAPIView):
     serializer_class = SessionListSerializer
-    permission_classes = [IsAuthenticated, IsCoordinator | IsTrainer]
+    permission_classes = [IsAuthenticated, IsCoordinator or IsTrainer]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['date']
 
     def get_queryset(self):
-        print(self.request.user)
         return SessionService.get_sessions_by_user_school(
             self.request.user)
 
 
-class MakeUpsListView(generics.ListAPIView):
-    serializer_class = MakeUpSerializer
+class AbsencesListView(generics.ListAPIView):
+    serializer_class = AbsencesSerializer
     permission_classes = [IsAuthenticated, IsCoordinator | IsTrainer]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['make_up_on']
+    filterset_fields = [
+        'absent_on_session',
+        'absent_participant',
+        'choosed_course_session_for_absence__date',
+        'choosed_make_up_session_for_absence__datetime__date']
 
     def get_queryset(self):
-        return MakeUpService.get_makeups_by_user_school(
-            self.request.user)
+        return AbsenceService.get_all_absences_from_school(
+            self.request.user.course_school.first())
 
 
 class TrainerScheduleView(
@@ -105,35 +161,40 @@ class MakeUpSessionsAvailableView(mixins.CreateModelMixin, generics.GenericAPIVi
     serializer_class = MakeUpSerializer
 
     def get(self, request, *args, **kwargs):
-        # TODO: TEST ALL USE-CASES AND UPDATE FILTER CONDITIONS
-        """
-            view for getting all available make_ups for a session
-            body_example:{
-                "session_id": "ff867fe5-d7cc-4ce3-a6af-8c8fd43d3dbe"
-            }
-        """
-        session_id = request.data.get('session_id')
-        school = request.user.course_school.first()
+        absence_id = request.GET.get('absence_id')
+        school = request.user.user_school.first()
 
-        session = SessionService.get_session_by_id(session_id)
-        make_ups_for_session_in_current_school = MakeUpService.get_make_ups_for_school_by_session(
-            school, session)
-        make_ups_for_session_in_other_schools = MakeUpService.get_make_ups_excluding_current_school_by_session(
-            school, session)
-        all_make_ups = list(
-            chain(
-                make_ups_for_session_in_current_school,
-                make_ups_for_session_in_other_schools,
-            )
-        )
-        if len(all_make_ups) > 0:
-            serializer = MakeUpSerializer(all_make_ups, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-        return Response({'detail': 'MakeUps not found'}, status=status.HTTP_404_NOT_FOUND)
+        absence = AbsenceService.get_absence_by_id(absence_id)
+        make_ups_for_session_in_current_school = MakeUpService.get_make_ups_for_session(
+            absence, school)
+        courses_for_session = SessionService.get_next_sessions_for_absence(
+            absence, school)
+        make_up_options = {
+            "make_ups": make_ups_for_session_in_current_school,
+            "courses": courses_for_session,
+        }
+        return Response(make_up_options, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
+
+
+class MakeUpChooseView(generics.GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        session = None
+        make_up = None
+        absence = AbsenceService.get_absence_by_id(self.kwargs['absence_id'])
+        if self.kwargs.get("session_option") and self.kwargs.get("session_option") != "None":
+            session = SessionService.get_session_by_id(self.kwargs.get("session_option")).first()
+            print(session)
+            absence.choosed_course_session_for_absence = session
+        elif self.kwargs.get("make_up_opton") and self.kwargs.get("make_up_opton") != "None":
+            make_up = MakeUpService.get_make_up_by_id(self.kwargs.get("make_up_option")) 
+            absence.choosed_make_up_session_for_absence = make_up
+        absence.has_make_up_scheduled = True
+        absence.save()
+        # TODO: IMPLEMENT SEND MAIL FOR MAKE UP CONFIRMATION
+        return Response({"message": "Absence updated"}, status=status.HTTP_200_OK)
 
 
 class TrainersScheduleAvailableView(generics.GenericAPIView):
@@ -161,6 +222,17 @@ class TrainersScheduleAvailableView(generics.GenericAPIView):
         return Response({'detail': 'MakeUps not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
+class TrainerFromSchoolListView(generics.ListAPIView):
+    serializer_class = TrainerFromSchoolSerializer
+
+    def get_queryset(self):
+        # Get the school from the authenticated user
+        school = self.request.user.user_school.all().first()
+        # Query the trainers from the school
+        queryset = TrainerFromSchool.objects.filter(school=school)
+        return queryset
+
+
 class MakeUpRequestNewView(mixins.CreateModelMixin, generics.GenericAPIView):
     serializer_class = MakeUpSerializer
 
@@ -175,6 +247,8 @@ class SendEmailToGroupsView(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        print(serializer.validated_data["send_mail"])
+        print(serializer.validated_data["send_whatsapp"])
         if serializer.validated_data["send_mail"]:
             StudentService.send_emails_to_students_in_groups(
                 groups=serializer.validated_data["groups"],
@@ -184,7 +258,6 @@ class SendEmailToGroupsView(generics.GenericAPIView):
         if serializer.validated_data["send_whatsapp"]:
             StudentService.send_whatsapp_to_students_in_groups(
                 groups=serializer.validated_data["groups"],
-                subject=serializer.validated_data["subject"],
                 message=serializer.validated_data["message"],
             )
         return Response({"message": "Mails sent successfully"}, status.HTTP_200_OK)
@@ -196,11 +269,11 @@ class UploadCourseExcelView(APIView):
 
     def post(self, request, *args, **kwargs):
         check_excel_format_in_request_data(request)
-        school = request.user.course_school.first()
+        school = self.request.user.user_school.all().first()
         try:
-            CourseService.create_course_and_course_schedule_from_excel_by_school(
+            total_courses = CourseService.create_course_and_course_schedule_from_excel_by_school(
                 request.data['file'], school)
-            return Response({'message': 'Data imported successfully'}, status=status.HTTP_200_OK)
+            return Response({'message': f'Total cursuri create: {total_courses}'}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -211,7 +284,7 @@ class UploadStudentsExcelView(APIView):
 
     def post(self, request, *args, **kwargs):
         check_excel_format_in_request_data(request)
-        school = request.user.course_school.first()
+        school = self.request.user.user_school.all().first()
         try:
             StudentService.create_student_from_excel_and_assign_it_to_school_course(
                 request.data['file'],
@@ -246,8 +319,8 @@ class CourseScheduleDetailView(generics.ListAPIView, generics.GenericAPIView):
     filterset_fields = ['id']
 
     def get_queryset(self):
-        school = self.request.user.course_school.first()
-        return CourseSchedule.objects.filter(course__school=school)
+        school = self.request.user.user_school.first()
+        return CourseSchedule.objects.filter(school=school)
 
 
 class SignInView(generics.GenericAPIView):
@@ -256,6 +329,7 @@ class SignInView(generics.GenericAPIView):
     serializer_class = SignInSerializer
 
     def post(self, request: Request):
+        print(request.data)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -277,18 +351,30 @@ class SignOutView(APIView):
         return response
 
 
-class SchoolSetupView(mixins.CreateModelMixin,
-                      generics.GenericAPIView,
-                      ):
+class CheckUserRedirectView(APIView):
+    def get(self, request):
+        redirect_url = ""
+        if request.user.role == "coordinator" and not request.user.user_school.all().exists():
+            redirect_url = "http://127.0.0.1:5500/lsc_frontend_simplified/school_create.html"
+        elif request.user.role == "parent":
+            # TODO: implement
+            pass
+        else:
+            redirect_url = "http://127.0.0.1:5500/lsc_frontend_simplified/today_sessions.html"
+        return Response({"redirect_to": redirect_url}, status=status.HTTP_200_OK)
 
-    serializer_class = SchoolSetupSerializer
-    permission_classes = [IsAuthenticated, IsCoordinator]
+
+class DaysOffListView(generics.ListCreateAPIView):
+    serializer_class = DaysOffSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        school = self.request.user.user_school.all().first()
+        queryset = DaysOff.objects.filter(school=school)
+        return queryset
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-    def post(self, request: Request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
+        serializer.save(school=self.request.user.user_school.all().first())
 
 
 class StudentProfileView(generics.RetrieveUpdateDestroyAPIView, generics.GenericAPIView):
@@ -340,6 +426,15 @@ class TrainerCreateView(mixins.CreateModelMixin, generics.GenericAPIView):
         return self.create(request, *args, **kwargs)
 
 
+class TrainerFromSchoolListView(generics.ListAPIView):
+    serializer_class = TrainerFromSchoolSerializer
+
+    def get_queryset(self):
+        school = self.request.user.user_school.all().first()
+        queryset = TrainerFromSchool.objects.filter(school=school)
+        return queryset
+
+
 class ResetPasswordView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated, IsCoordinator | IsTrainer]
     serializer_class = ResetPasswordSerializer
@@ -370,9 +465,36 @@ class StudentAbsentView(APIView):
     def post(self, request, *args, **kwargs):
         student = StudentService.get_student_by_id(kwargs['student_id'])
         session = SessionService.get_session_by_id(kwargs["session_id"]).first()
-        if student not in session.absent_participants.all():
-            session.absent_participants.add(student)
-        else:
-            print("Student already absent. Will skip")
-        MakeUpService.create_empty_make_up_session_for_student(student, session)
+        absence, created = AbsenceService.create_absent_student_for_session(
+            student=student,
+            session=session,)
+        if created:
+            MakeUpService.create_empty_make_up_session_for_absence(student, absence)
         return Response({"Student marked successfully as absent"}, status=status.HTTP_200_OK)
+
+    def get(self, request, *args, **kwargs):
+        absences = AbsenceService.get_all_absences_from_school(
+            school=request.user.user_school.first())
+        serializer = AbsencesSerializer(absences, many=True)
+        return Response(serializer.data)
+
+
+class SchoolCreateView(generics.CreateAPIView):
+    serializer_class = SchoolSetupSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class RoomListCreateView(generics.ListCreateAPIView):
+    serializer_class = RoomSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        school = self.request.user.user_school.all().first()
+        queryset = Room.objects.filter(school=school)
+        return queryset
+
+    def perform_create(self, serializer):
+        serializer.save(school=self.request.user.user_school.all().first())
